@@ -1,0 +1,25 @@
+# Docker
+.dockerignore
+docker-compose.override.yml
+postgres-data/
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+
+# Node
+node_modules/
+.nuxt/
+dist/
+.output/
+.env.*
+
+# OS
+.DS_Store
