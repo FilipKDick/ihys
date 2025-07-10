@@ -13,5 +13,4 @@ CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "800
 
 FROM builder AS prod
 COPY . .
-CMD ["uvicorn", "app.main:app", "--ho
-st", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
