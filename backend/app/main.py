@@ -1,3 +1,4 @@
+from backend.app.db.base import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -17,6 +18,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+def startup_event():
+    print("Starting up the FastAPI application...")
+    init_db()
 
 @app.get("/")
 def read_root():

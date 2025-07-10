@@ -1,14 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from app.db.base import Base
+from typing import Annotated
 
-class User(Base):
-    __tablename__ = "users"
+from fastapi import Depends, FastAPI, HTTPException, Query
+from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-    id = Column(Integer, primary_key=True, index=True)
-    mal_id = Column(String, unique=True, index=True, nullable=False)
-    mal_username = Column(String, nullable=False)
-    
-    encrypted_access_token = Column(String, nullable=False)
-    encrypted_refresh_token = Column(String, nullable=False)
-    
-    token_expires_at = Column(DateTime, nullable=False)
+
+class User(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    mal_id: str = Field(unique=True, index=True, nullable=False)
+    mal_username: str = Field(nullable=False)
+    encrypted_access_token: str = Field(nullable=False)
+    encrypted_refresh_token: str = Field(nullable=False)
+    token_expires_at: str = Field(nullable=False)
