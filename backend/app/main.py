@@ -1,38 +1,36 @@
-from backend.app.db.base import init_db
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
+from starlette.middleware.sessions import SessionMiddleware
+
+from app.api import auth
+from app.core.config import settings
+from app.db.base import init_db
 
 app = FastAPI()
 
-# This is important for allowing the frontend (running on a different port)
-# to communicate with the backend.
 origins = [
-    "http://localhost:3000", # The Nuxt frontend
+    'http://localhost:3000',
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
-@app.on_event("startup")
-def startup_event():
-    print("Starting up the FastAPI application...")
-    init_db()
+app.add_middleware(SessionMiddleware, secret_key=settings.ENCRYPTION_KEY)
 
-@app.get("/")
-def read_root():
-    return {"status": "Backend is running!"}
+app.include_router(auth.router, prefix='/api/auth', tags=['Authentication'])
 
-@app.get("/api/test")
-def test_api():
-    # Example of reading an environment variable
-    mal_id = os.getenv("MAL_CLIENT_ID", "Not Set")
-    return {
-        "message": "Hello from FastAPI!",
-        "mal_client_id_is_set": mal_id != "Not Set"
-    }
+
+@app.on_event('startup')
+async def startup_event() -> None:
+    print('Starting up the FastAPI application...')
+    await init_db()
+
+
+@app.get('/')
+def read_root() -> dict:
+    return {'status': 'Backend is running!'}

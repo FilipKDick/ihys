@@ -1,4 +1,8 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    SettingsConfigDict,
+)
+
 
 class Settings(BaseSettings):
     DATABASE_URL: str
@@ -6,9 +10,10 @@ class Settings(BaseSettings):
     MAL_CLIENT_SECRET: str
     ENCRYPTION_KEY: bytes
 
-    # This points to our frontend, used for redirecting after login
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = 'http://localhost:3000'
+    BACKEND_URL: str = 'http://localhost:8002'
 
-    model_config = SettingsConfigDict(env_file=".env.backend")
+    model_config = SettingsConfigDict(env_file='.env.backend')
+
 
 settings = Settings()

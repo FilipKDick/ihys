@@ -1,7 +1,11 @@
-from typing import Annotated
+from datetime import datetime
 
-from fastapi import Depends, FastAPI, HTTPException, Query
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlalchemy import TIMESTAMP
+from sqlmodel import (
+    Column,
+    Field,
+    SQLModel,
+)
 
 
 class User(SQLModel, table=True):
@@ -10,4 +14,6 @@ class User(SQLModel, table=True):
     mal_username: str = Field(nullable=False)
     encrypted_access_token: str = Field(nullable=False)
     encrypted_refresh_token: str = Field(nullable=False)
-    token_expires_at: str = Field(nullable=False)
+    token_expires_at: datetime = Field(
+        sa_column=Column(TIMESTAMP(timezone=True), nullable=False),
+    )

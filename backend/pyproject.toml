@@ -10,9 +10,11 @@ dependencies = [
     "fastapi>=0.116.0",
     "httpx-oauth>=0.16.1",
     "ipython>=9.4.0",
-    "psycopg2-binary>=2.9.10",
+    "isort>=6.0.1",
+    "itsdangerous>=2.2.0",
     "pydantic-settings>=2.10.1",
     "python-dotenv>=1.1.1",
+    "ruff>=0.12.2",
     "sqlalchemy[asyncio]>=2.0.41",
     "sqlmodel>=0.0.24",
     "uvicorn[standard]>=0.35.0",
@@ -33,7 +35,6 @@ profile = "black"
 lines_between_types = 1
 # split imports to multline, when 2 or more imports in one line
 force_grid_wrap = 2
-sections = ['FUTURE','STDLIB','DJANGO','THIRDPARTY','FIRSTPARTY','LOCALFOLDER']
 
 
 [tool.ruff]
@@ -69,3 +70,22 @@ select = [
 ignore = [
   "Q001",  # bad-quotes-multiline-string
 ]
+
+[tool.ruff.format]
+quote-style="single"
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ruff.lint.isort]
+lines-between-types = 1
+
+[tool.mypy]
+plugins = [
+    "sqlalchemy.ext.mypy.plugin",
+    "pydantic.mypy"
+]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_return_any = true
+strict_optional = true
