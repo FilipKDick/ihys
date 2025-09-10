@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from .base import get_soup_from_url
-from app.db.base import AsyncSessionLocal
-from app.db.models import Anime
+from app.db.base import db
+from app.db.models import Anime, TableNames
 
 
 def parse_mal_anime_page(soup: BeautifulSoup) -> dict:
@@ -38,6 +38,8 @@ def parse_mal_anime_page(soup: BeautifulSoup) -> dict:
         synopsis = synopsis_elem.get_text().strip()
         synopsis = synopsis.replace('[Written by MAL Rewrite]', '').strip()
         result['synopsis'] = synopsis
+
+    # Set name as the primary title
     result['name'] = result.get('english_title') or result.get('japanese_title') or 'Unknown'
     return result
 
@@ -46,10 +48,15 @@ async def fetch_and_insert_anime_data(session, url: str) -> Anime | None:
     soup = await get_soup_from_url(session, url)
     if not soup:
         return None
+
     scraped_data = parse_mal_anime_page(soup)
-    async with AsyncSessionLocal() as db:
-        new_anime = Anime.model_validate(scraped_data)
-        db.add(new_anime)
-        await db.commit()
-        await db.refresh(new_anime)
-        return new_anime
+
+    result = db.upsert_record(
+        table_name=TableNames.ANIME,
+        data=scraped_data,
+        conflict_columns=['name']  # Handle duplicates by anime name
+    )
+
+    if result:
+        return Anime(**result)
+    return None

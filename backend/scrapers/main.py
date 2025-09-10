@@ -38,10 +38,14 @@ class MALScraper:
 
     async def run(self, page_start):
         async with self.semaphore:
+            logger.info(f"🚀 Starting to scrape page {page_start // ANIME_PER_PAGE + 1} (limit={page_start})")
             await self.ensure_delay()
             top_anime_list = await self.scrape_top_anime_list(page_start=page_start)
 
-            for anime in top_anime_list:
+            logger.info(f"📋 Found {len(top_anime_list)} anime URLs on page {page_start // ANIME_PER_PAGE + 1}")
+
+            for i, anime in enumerate(top_anime_list, 1):
+                logger.info(f"🎬 Processing anime {i}/{len(top_anime_list)} from page {page_start // ANIME_PER_PAGE + 1}: {anime}")
                 await self.ensure_delay()
                 await self.scrape_anime_details_and_characters(anime)
 
@@ -49,24 +53,30 @@ class MALScraper:
         url = f"https://myanimelist.net/topanime.php?limit={page_start}"
         anime_list = []
 
+        logger.info(f"📡 Fetching top anime list from: {url}")
+
         soup = await get_soup_from_url(self.session, url)
 
         if not soup:
-            logger.error(f"Failed to fetch page {page_start}")
+            logger.error(f"❌ Failed to fetch page {page_start}")
             return []
 
         ranking_rows = soup.find_all('tr', class_='ranking-list')
-        for row in ranking_rows:
+        logger.info(f"🔍 Found {len(ranking_rows)} anime entries on the page")
+
+        for i, row in enumerate(ranking_rows, 1):
             try:
                 anime_url = self.extract_anime_url(row)
+                logger.debug(f"  📝 Extracted URL {i}/{len(ranking_rows)}: {anime_url}")
             except Exception as e:
-                logger.error(f"Error processing anime row: {e}")
+                logger.error(f"❌ Error processing anime row {i}: {e}")
                 continue
             if not anime_url:
-                logger.warning(f"Failed to extract anime URL from row: {row}")
+                logger.warning(f"⚠️ Failed to extract anime URL from row {i}")
                 continue
             anime_list.append(anime_url)
 
+        logger.info(f"✅ Successfully extracted {len(anime_list)} anime URLs from page {page_start // ANIME_PER_PAGE + 1}")
         return anime_list
 
     def extract_anime_url(self, row) -> str:
@@ -83,27 +93,52 @@ class MALScraper:
         return anime_url
 
     async def scrape_anime_details_and_characters(self, anime_url: str, delay: float = 1.0) -> None:
+        logger.info(f"🎭 Scraping anime details from: {anime_url}")
+
         # Scrape anime details
         # TODO: this should be in the same class probably
         anime = await fetch_and_insert_anime_data(self.session, anime_url)
-        if not anime:
-            logger.error(f"Failed to scrape anime details from {anime_url}")
+        if not anime or not anime.id:
+            logger.error(f"❌ Failed to scrape anime details from {anime_url}")
             return None
 
+        logger.info(f"✅ Successfully scraped anime: {anime.name} (ID: {anime.id})")
+
         # Add delay to be respectful to the server
-        time.sleep(delay)
+        logger.debug(f"⏳ Waiting {delay}s before scraping characters...")
 
         # Create characters URL by appending /characters
         characters_url = anime_url.rstrip('/') + '/characters'
-        await fetch_and_insert_actors_data(self.session, characters_url, anime.id)
+        logger.info(f"👥 Scraping characters from: {characters_url}")
+
+        try:
+            await fetch_and_insert_actors_data(self.session, characters_url, anime.id)
+            logger.info(f"✅ Successfully scraped characters for anime ID {anime.id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to scrape characters for {anime_url}: {e}")
+
         return None
 
 
 async def run_scraper():
+    logger.info(f"🎯 Starting MAL scraper - will scrape {ANIME_TO_SCRAPE} anime across {(ANIME_TO_SCRAPE // ANIME_PER_PAGE)} pages")
+    logger.info(f"⚙️ Settings: {ANIME_PER_PAGE} anime per page, {MAX_CONCURRENT} concurrent requests, {REQUESTS_DELAY}s delay between requests")
+
     async with aiohttp.ClientSession() as session:
         scraper = MALScraper(session)
-        tasks = [scraper.run(i) for i in range(0, ANIME_TO_SCRAPE, ANIME_PER_PAGE)]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        page_ranges = list(range(0, ANIME_TO_SCRAPE, ANIME_PER_PAGE))
+        logger.info(f"📄 Will process pages with limits: {page_ranges}")
+
+        tasks = [scraper.run(i) for i in page_ranges]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Log results
+        successful = sum(1 for r in results if not isinstance(r, Exception))
+        failed = len(results) - successful
+        logger.info(f"🏁 Scraping completed! {successful} pages successful, {failed} pages failed")
+
+        if failed > 0:
+            logger.warning(f"⚠️ Failed pages: {[str(r) for r in results if isinstance(r, Exception)]}")
 
 if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(run_scraper())
