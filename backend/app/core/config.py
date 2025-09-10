@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = 'http://localhost:3000'
     BACKEND_URL: str = 'http://localhost:8002'
 
+    DEBUG: bool = False
+
     model_config = SettingsConfigDict(env_file='.env.backend')
 
 

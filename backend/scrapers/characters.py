@@ -1,12 +1,9 @@
-from bs4 import BeautifulSoup
-import requests
-
 from app.db.models import Actor, Character, CharacterActor
 
 from app.db.base import AsyncSessionLocal
 from sqlmodel import select
 
-from app.services.scrappers.base import get_soup_from_url
+from .base import get_soup_from_url
 
 
 def extract_actors_data_from_page(soup):
@@ -39,8 +36,8 @@ def extract_actors_data_from_page(soup):
         }
 
 
-async def fetch_and_insert_actors_data(characters_url):
-    soup = get_soup_from_url(characters_url)
+async def fetch_and_insert_actors_data(session, characters_url, anime_id):
+    soup = await get_soup_from_url(session, characters_url)
     if not soup:
         return
     async with AsyncSessionLocal() as db:
@@ -52,6 +49,7 @@ async def fetch_and_insert_actors_data(characters_url):
             character_info = {
                 'name': actor_data['character_name'],
                 'photo': actor_data['character_photo'],
+                'anime_id': anime_id,
             }
 
             # Check if actor exists

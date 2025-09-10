@@ -101,7 +101,7 @@ async def callback(
         key='session_id',
         value=f'user-{user.id}',
         httponly=True,
-        secure=False,  # Set to True in production
+        secure=not settings.DEBUG,
         samesite='lax',
     )
     return response

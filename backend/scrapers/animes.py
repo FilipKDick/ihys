@@ -27,7 +27,6 @@ def parse_mal_anime_page(soup: BeautifulSoup) -> dict:
             key = dark_text.get_text().replace(':', '').strip().lower()
             value = elem.get_text().replace(dark_text.get_text(), '').strip()
 
-            # Clean up the value by removing extra whitespace
             value = ' '.join(value.split())
 
             if key and value:
@@ -43,8 +42,8 @@ def parse_mal_anime_page(soup: BeautifulSoup) -> dict:
     return result
 
 
-async def fetch_and_insert_anime_data(url: str) -> dict | None:
-    soup = get_soup_from_url(url)
+async def fetch_and_insert_anime_data(session, url: str) -> Anime | None:
+    soup = await get_soup_from_url(session, url)
     if not soup:
         return None
     scraped_data = parse_mal_anime_page(soup)

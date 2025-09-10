@@ -38,6 +38,7 @@ class CharacterActor(SQLModel, table=True):
     actor_id: int = Field(foreign_key='actor.id', nullable=False)
 
 
+# TODO: clean data (i.e. season 2 etc)
 class Anime(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(unique=True, index=True, nullable=False)
