@@ -1,9 +1,10 @@
 from datetime import datetime
-from pydantic import BaseModel
 import uuid
 
+from app.db.base import DataBaseModel
 
-class User(BaseModel):
+
+class User(DataBaseModel):
     id: int | None = None
     mal_id: str
     mal_username: str
@@ -14,30 +15,42 @@ class User(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
+    __tablename__ = "user"
+    __unique_fields__ = ["username"]
 
-class Actor(BaseModel):
+
+class Actor(DataBaseModel):
     id: int | None = None
     name: str
     photo: str
     created_at: datetime | None = None
 
+    __tablename__ = "actor"
+    __unique_fields__ = ["name"]
 
-class Character(BaseModel):
+
+class Character(DataBaseModel):
     id: int | None = None
     name: str
     photo: str
     anime_id: int
     created_at: datetime | None = None
 
+    __tablename__ = "character"
+    __unique_fields__ = ["name", "anime_id"]
 
-class CharacterActor(BaseModel):
+
+class CharacterActor(DataBaseModel):
     id: int | None = None
     character_id: int
     actor_id: int
 
+    __tablename__ = "character_actor"
+    __unique_fields__ = ["character_id", "actor_id"]
+
 
 # TODO: clean data (i.e. season 2 etc)
-class Anime(BaseModel):
+class Anime(DataBaseModel):
     id: int | None = None
     name: str
     english_title: str | None = None
@@ -56,6 +69,9 @@ class Anime(BaseModel):
     synopsis: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+
+    __tablename__ = "anime"
+    __unique_fields__ = ["name"]
 
 
 class TableNames:

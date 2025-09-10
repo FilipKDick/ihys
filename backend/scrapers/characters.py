@@ -1,7 +1,10 @@
-from app.db.models import Actor, Character, TableNames
-from app.db.base import db
+from app.db.models import Actor, Character, CharacterActor, TableNames
+from app.db.connection import db
 from .base import get_soup_from_url
 from typing import Generator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def extract_actors_data_from_page(soup) -> Generator[dict[str, str], None, None]:
@@ -37,10 +40,13 @@ def extract_actors_data_from_page(soup) -> Generator[dict[str, str], None, None]
 
 async def fetch_and_insert_actors_data(session, characters_url: str, anime_id: int):
     """Fetch character and actor data from MAL characters page and insert into Supabase."""
+    logger.info(f"👥 Fetching characters from: {characters_url} (anime_id: {anime_id})")
     soup = await get_soup_from_url(session, characters_url)
     if not soup:
+        logger.error(f"❌ Failed to get soup from characters URL: {characters_url}")
         return
 
+    character_count = 0
     for actor_data in extract_actors_data_from_page(soup):
         actor_info = {
             'name': actor_data['actor_name'],
@@ -51,40 +57,11 @@ async def fetch_and_insert_actors_data(session, characters_url: str, anime_id: i
             'photo': actor_data['character_photo'],
             'anime_id': anime_id,
         }
+        actor = Actor(**actor_info).save()
+        character = Character(**character_info).save()
 
-        # Insert or get existing actor using upsert
-        actor_result = db.upsert_record(
-            table_name=TableNames.ACTORS,
-            data=actor_info,
-            conflict_columns=['name']
-        )
-
-        if not actor_result:
-            print(f"Failed to insert actor: {actor_info['name']}")
-            continue
-
-        actor = Actor(**actor_result)
-
-        character_result = db.upsert_record(
-            table_name=TableNames.CHARACTERS,
-            data=character_info,
-            conflict_columns=['name', 'anime_id']
-        )
-
-        if not character_result:
-            print(f"Failed to insert character: {character_info['name']}")
-            continue
-
-        character = Character(**character_result)
-
-        # Create character-actor relationship
         character_actor_info = {
             'character_id': character.id,
             'actor_id': actor.id,
         }
-
-        db.upsert_record(
-            table_name=TableNames.CHARACTER_ACTORS,
-            data=character_actor_info,
-            conflict_columns=['character_id', 'actor_id']
-        )
+        CharacterActor(**character_actor_info).save()

@@ -4,7 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import auth
 from app.core.config import settings
-from app.db.base import init_db
+from app.db.connection import init_db
 
 app = FastAPI()
 

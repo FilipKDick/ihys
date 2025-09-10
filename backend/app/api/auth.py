@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.core.config import settings
-from app.db.base import get_session
+from app.db.connection import get_session
 from app.db.models import User
 from app.services.oauth import client
 from app.services.security import encrypt_token

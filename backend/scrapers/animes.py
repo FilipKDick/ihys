@@ -1,7 +1,9 @@
 from bs4 import BeautifulSoup
+import logging
 from .base import get_soup_from_url
-from app.db.base import db
-from app.db.models import Anime, TableNames
+from app.db.models import Anime
+
+logger = logging.getLogger(__name__)
 
 
 def parse_mal_anime_page(soup: BeautifulSoup) -> dict:
@@ -45,18 +47,11 @@ def parse_mal_anime_page(soup: BeautifulSoup) -> dict:
 
 
 async def fetch_and_insert_anime_data(session, url: str) -> Anime | None:
+    logger.info(f"🎬 Fetching anime data from: {url}")
     soup = await get_soup_from_url(session, url)
     if not soup:
+        logger.error(f"❌ Failed to get soup from URL: {url}")
         return None
 
     scraped_data = parse_mal_anime_page(soup)
-
-    result = db.upsert_record(
-        table_name=TableNames.ANIME,
-        data=scraped_data,
-        conflict_columns=['name']  # Handle duplicates by anime name
-    )
-
-    if result:
-        return Anime(**result)
-    return None
+    return Anime(**scraped_data).save()

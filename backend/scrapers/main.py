@@ -96,7 +96,7 @@ class MALScraper:
         logger.info(f"🎭 Scraping anime details from: {anime_url}")
 
         # Scrape anime details
-        # TODO: this should be in the same class probably
+        # TODO: this should be in the same class
         anime = await fetch_and_insert_anime_data(self.session, anime_url)
         if not anime or not anime.id:
             logger.error(f"❌ Failed to scrape anime details from {anime_url}")
