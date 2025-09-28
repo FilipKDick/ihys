@@ -14,3 +14,8 @@ class DataBaseModel(BaseModel):
             conflict_columns=self.__unique_fields__,
         )
         return self.__class__(**saved_data)
+
+    def exists(self):
+        fields = {field: getattr(self, field) for field in self.__unique_fields__}
+        records = db.get_records(self.__tablename__, fields, limit=1)
+        return len(records) > 0

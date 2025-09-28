@@ -24,8 +24,7 @@ def extract_actors_data_from_page(soup) -> Generator[dict[str, str], None, None]
             None
         )
         if not japanese_actor:
-            # TODO: log this
-            print(f'Japanese actor not found for {character_name}')
+            logger.error(f'Japanese actor not found for {character_name}')
             continue
 
         actor_name = japanese_actor.find('a').text.strip()

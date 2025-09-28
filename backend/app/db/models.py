@@ -15,7 +15,7 @@ class User(DataBaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
-    __tablename__ = "user"
+    __tablename__ = "users"
     __unique_fields__ = ["username"]
 
 
@@ -25,7 +25,7 @@ class Actor(DataBaseModel):
     photo: str
     created_at: datetime | None = None
 
-    __tablename__ = "actor"
+    __tablename__ = "actors"
     __unique_fields__ = ["name"]
 
 
@@ -36,7 +36,7 @@ class Character(DataBaseModel):
     anime_id: int
     created_at: datetime | None = None
 
-    __tablename__ = "character"
+    __tablename__ = "characters"
     __unique_fields__ = ["name", "anime_id"]
 
 
@@ -45,7 +45,7 @@ class CharacterActor(DataBaseModel):
     character_id: int
     actor_id: int
 
-    __tablename__ = "character_actor"
+    __tablename__ = "character_actors"
     __unique_fields__ = ["character_id", "actor_id"]
 
 

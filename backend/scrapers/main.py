@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 import asyncio
 import aiohttp
 
+from app.db.models import Anime
 from .base import get_soup_from_url
 from .animes import fetch_and_insert_anime_data
 from .characters import fetch_and_insert_actors_data
@@ -66,7 +67,7 @@ class MALScraper:
 
         for i, row in enumerate(ranking_rows, 1):
             try:
-                anime_url = self.extract_anime_url(row)
+                anime_url, anime_title = self.extract_anime_url(row)
                 logger.debug(f"  📝 Extracted URL {i}/{len(ranking_rows)}: {anime_url}")
             except Exception as e:
                 logger.error(f"❌ Error processing anime row {i}: {e}")
@@ -74,12 +75,13 @@ class MALScraper:
             if not anime_url:
                 logger.warning(f"⚠️ Failed to extract anime URL from row {i}")
                 continue
-            anime_list.append(anime_url)
+            if not Anime(name=anime_title).exists():
+                anime_list.append(anime_url)
 
         logger.info(f"✅ Successfully extracted {len(anime_list)} anime URLs from page {page_start // ANIME_PER_PAGE + 1}")
         return anime_list
 
-    def extract_anime_url(self, row) -> str:
+    def extract_anime_url(self, row) -> tuple[str, str]:
         title_cell = row.find('td', class_='title')
         title_h3 = title_cell.find('h3', class_='anime_ranking_h3')
         if title_h3:
@@ -90,11 +92,12 @@ class MALScraper:
         anime_url = title_link.get('href')
         if anime_url and not anime_url.startswith('http'):
             anime_url = urljoin("https://myanimelist.net", anime_url)
-        return anime_url
+        anime_title = title_link.text
+        return anime_url, anime_title
 
-    async def scrape_anime_details_and_characters(self, anime_url: str, delay: float = 1.0) -> None:
+    async def scrape_anime_details_and_characters(self, anime_url: str) -> None:
         logger.info(f"🎭 Scraping anime details from: {anime_url}")
-
+        await self.ensure_delay()
         # Scrape anime details
         # TODO: this should be in the same class
         anime = await fetch_and_insert_anime_data(self.session, anime_url)
@@ -103,19 +106,13 @@ class MALScraper:
             return None
 
         logger.info(f"✅ Successfully scraped anime: {anime.name} (ID: {anime.id})")
-
-        # Add delay to be respectful to the server
-        logger.debug(f"⏳ Waiting {delay}s before scraping characters...")
-
         # Create characters URL by appending /characters
         characters_url = anime_url.rstrip('/') + '/characters'
         logger.info(f"👥 Scraping characters from: {characters_url}")
 
-        try:
-            await fetch_and_insert_actors_data(self.session, characters_url, anime.id)
-            logger.info(f"✅ Successfully scraped characters for anime ID {anime.id}")
-        except Exception as e:
-            logger.error(f"❌ Failed to scrape characters for {anime_url}: {e}")
+        await self.ensure_delay()
+        await fetch_and_insert_actors_data(self.session, characters_url, anime.id)
+        logger.info(f"✅ Successfully scraped characters for anime ID {anime.id}")
 
         return None
 
