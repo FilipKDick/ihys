@@ -1,26 +1,13 @@
 import secrets
-
-from datetime import (
-    datetime,
-    timedelta,
-    timezone,
-)
+from datetime import datetime, timedelta, timezone
 
 import httpx
-
-from fastapi import (
-    APIRouter,
-    Depends,
-    Request,
-    Response,
-)
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
 
 from app.core.config import settings
-from app.db.connection import get_session
-from app.db.models import User
+from app.db.connection import db
+from app.services.auth import get_current_user
 from app.services.oauth import client
 from app.services.security import encrypt_token
 
@@ -46,24 +33,14 @@ async def login(request: Request) -> RedirectResponse:
 
 
 @router.get('/callback')
-async def callback(
-    request: Request,
-    response: Response,
-    code: str,
-    db: AsyncSession = Depends(get_session),  # noqa: B008
-) -> Response:
+async def callback(request: Request, code: str) -> Response:
     code_verifier = request.session.pop('code_verifier', None)
     if not code_verifier:
         return Response('Authorization error: No code verifier found.', status_code=400)
 
-    token_data = await client.get_access_token(
-        code,
-        CALLBACK_URL,
-        code_verifier=code_verifier,
-    )
+    token_data = await client.get_access_token(code, CALLBACK_URL, code_verifier=code_verifier)
     access_token = token_data['access_token']
     expires_in = token_data['expires_in']
-
     expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
     async with httpx.AsyncClient() as user_client:
@@ -82,26 +59,26 @@ async def callback(
         'mal_username': mal_username,
         'encrypted_access_token': encrypt_token(access_token),
         'encrypted_refresh_token': encrypt_token(token_data['refresh_token']),
-        'token_expires_at': expires_at,
+        'token_expires_at': expires_at.isoformat(),
     }
-    statement = select(User).where(User.mal_id == mal_id)
-    result = await db.execute(statement)
-    user = result.scalar_one_or_none()
-    if user:
-        user.sqlmodel_update(user_data)
-    else:
-        user = User.model_validate(user_data)
-    db.add(user)
 
-    await db.commit()
-    await db.refresh(user)
+    existing = db.get_records('users', {'mal_id': mal_id})
+    if existing:
+        user = db.update_record('users', existing[0]['id'], user_data)
+    else:
+        user = db.insert_record('users', user_data)
 
     response = RedirectResponse(url=f'{settings.FRONTEND_URL}/dashboard')
     response.set_cookie(
         key='session_id',
-        value=f'user-{user.id}',
+        value=f'user-{user["id"]}',
         httponly=True,
         secure=not settings.DEBUG,
         samesite='lax',
     )
     return response
+
+
+@router.get('/me')
+async def get_me(user: dict = Depends(get_current_user)) -> dict:
+    return {'id': user['id'], 'username': user['mal_username']}
