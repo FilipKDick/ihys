@@ -92,3 +92,12 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 warn_return_any = true
 strict_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
