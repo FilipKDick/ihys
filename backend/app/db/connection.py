@@ -38,6 +38,13 @@ class DatabaseOperations:
         return result.data
 
     @staticmethod
+    def get_records_by_ids(table_name: str, column: str, ids: list[int]) -> list[dict]:
+        if not ids:
+            return []
+        result = supabase.table(table_name).select('*').in_(column, ids).execute()
+        return result.data or []
+
+    @staticmethod
     def update_record(table_name: str, record_id: int, data: dict):
         result = supabase.table(table_name).update(data).eq("id", record_id).execute()
         return result.data[0] if result.data else None
