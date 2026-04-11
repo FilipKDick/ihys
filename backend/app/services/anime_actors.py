@@ -85,8 +85,11 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
     anime_cache: dict[int, dict] = {}
     result = []
 
+    actors_list = db.get_records_by_ids('actors', 'id', list(shared_actor_ids))
+    actors_by_id = {a['id']: a for a in actors_list}
+
     for actor_id in shared_actor_ids:
-        actor = db.get_record_by_id('actors', actor_id)
+        actor = actors_by_id.get(actor_id)
         if not actor:
             continue
 
@@ -109,7 +112,7 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
                 appears_in.append({'id': a['id'], 'name': a['name'], 'mal_id': a.get('mal_id')})
 
         result.append({
-            'actor': {'id': actor['id'], 'name': actor['name'], 'photo': actor['photo']},
+            'actor': {'id': actor['id'], 'name': actor['name'], 'photo': actor.get('photo')},
             'character_in_new_anime': {
                 'id': char_in_new['id'],
                 'name': char_in_new['name'],
