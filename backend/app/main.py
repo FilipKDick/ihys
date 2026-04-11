@@ -2,9 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.api import auth
+from app.api import anime, auth, user_anime
 from app.core.config import settings
-from app.db.connection import init_db
 
 app = FastAPI()
 
@@ -20,15 +19,11 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-app.add_middleware(SessionMiddleware, secret_key=settings.ENCRYPTION_KEY)
+app.add_middleware(SessionMiddleware, secret_key=settings.ENCRYPTION_KEY.decode())
 
 app.include_router(auth.router, prefix='/api/auth', tags=['Authentication'])
-
-
-@app.on_event('startup')
-async def startup_event() -> None:
-    print('Starting up the FastAPI application...')
-    await init_db()
+app.include_router(user_anime.router, prefix='/api/user', tags=['User Anime'])
+app.include_router(anime.router, prefix='/api/anime', tags=['Anime'])
 
 
 @app.get('/')
