@@ -22,5 +22,8 @@ dist/
 .env.*
 !.env.*.dist
 
+# Superpowers brainstorming sessions
+.superpowers/
+
 # OS
 .DS_Store
