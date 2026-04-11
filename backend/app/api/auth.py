@@ -49,6 +49,8 @@ async def callback(request: Request, code: str) -> Response:
             'https://api.myanimelist.net/v2/users/@me',
             headers=headers,
         )
+        if user_response.status_code != 200:
+            return Response(f'Failed to fetch MAL user info: {user_response.status_code}', status_code=502)
         user_info = user_response.json()
 
     mal_id = str(user_info['id'])
@@ -62,11 +64,9 @@ async def callback(request: Request, code: str) -> Response:
         'token_expires_at': expires_at.isoformat(),
     }
 
-    existing = db.get_records('users', {'mal_id': mal_id})
-    if existing:
-        user = db.update_record('users', existing[0]['id'], user_data)
-    else:
-        user = db.insert_record('users', user_data)
+    user = db.upsert_record('users', user_data, conflict_columns=['mal_id'])
+    if not user:
+        return Response('Failed to persist user record.', status_code=500)
 
     response = RedirectResponse(url=f'{settings.FRONTEND_URL}/dashboard')
     response.set_cookie(
