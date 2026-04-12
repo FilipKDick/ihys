@@ -33,10 +33,9 @@ def test_returns_shared_actor():
             ('characters', 'anime_id', frozenset({2})): [{'id': 200, 'name': 'Eren', 'photo': '', 'anime_id': 2}],
             ('character_actors', 'character_id', frozenset({200})): [{'character_id': 200, 'actor_id': 10}],
             ('actors', 'id', frozenset({10})): [{'id': 10, 'name': 'Atsumi Tanezaki', 'photo': 'http://photo.jpg'}],
+            ('anime', 'id', frozenset({2})): [{'id': 2, 'name': 'Attack on Titan', 'mal_id': 16498}],
         },
-        by_id={
-            ('anime', 2): {'id': 2, 'name': 'Attack on Titan', 'mal_id': 16498},
-        },
+        by_id={},
     )
 
     with patch('app.services.anime_actors.db', db):
