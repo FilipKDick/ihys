@@ -7,6 +7,42 @@ from scrapers.characters import fetch_and_insert_actors_data
 logger = logging.getLogger(__name__)
 
 
+async def ensure_anime_exists(mal_id: int) -> dict | None:
+    """Find anime in DB by MAL ID, or create a minimal record by fetching from MAL API."""
+    existing = db.get_records('anime', {'mal_id': mal_id})
+    if existing:
+        return existing[0]
+
+    import httpx
+    from app.core.config import settings
+    from datetime import datetime, timezone
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f'https://api.myanimelist.net/v2/anime/{mal_id}',
+            headers={'X-MAL-CLIENT-ID': settings.MAL_CLIENT_ID},
+            params={'fields': 'id,title,num_episodes,synopsis,mean,rank,popularity,genres,status'},
+        )
+        if response.status_code != 200:
+            logger.error(f'MAL API failed for mal_id={mal_id}: {response.status_code}')
+            return None
+        data = response.json()
+
+    anime_data = {
+        'name': data.get('title', 'Unknown'),
+        'mal_id': mal_id,
+        'episodes': str(data.get('num_episodes', '')),
+        'status': data.get('status', ''),
+        'synopsis': data.get('synopsis', ''),
+        'score': str(data.get('mean', '')),
+        'ranked': str(data.get('rank', '')),
+        'popularity': str(data.get('popularity', '')),
+        'genres': ','.join(g['name'] for g in data.get('genres', [])),
+        'created_at': datetime.now(timezone.utc).isoformat(),
+    }
+    return db.insert_record('anime', anime_data)
+
+
 async def ensure_actor_data(anime_id: int, mal_id: int) -> None:
     """Scrape and store actor/character data for an anime if not already in DB."""
     existing = db.get_records('characters', {'anime_id': anime_id})
@@ -82,7 +118,15 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
             actor_to_history_char_ids.setdefault(ca['actor_id'], []).append(ca['character_id'])
 
     # 9. Build results
-    anime_cache: dict[int, dict] = {}
+    # Batch-fetch all watched anime for the cache
+    all_user_anime_db_ids = list({
+        history_char_map[cid]['anime_id']
+        for actor_id in shared_actor_ids
+        for cid in actor_to_history_char_ids.get(actor_id, [])
+        if cid in history_char_map
+    })
+    watched_animes = db.get_records_by_ids('anime', 'id', all_user_anime_db_ids)
+    anime_cache: dict[int, dict] = {a['id']: a for a in watched_animes}
     result = []
 
     actors_list = db.get_records_by_ids('actors', 'id', list(shared_actor_ids))
@@ -105,9 +149,7 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
             if aid in seen_anime_ids:
                 continue
             seen_anime_ids.add(aid)
-            if aid not in anime_cache:
-                anime_cache[aid] = db.get_record_by_id('anime', aid) or {}
-            a = anime_cache[aid]
+            a = anime_cache.get(aid, {})
             if a:
                 appears_in.append({'id': a['id'], 'name': a['name'], 'mal_id': a.get('mal_id')})
 

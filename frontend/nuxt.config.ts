@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // This makes the variable available on both server and client side
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8002'
     }
   }
 })

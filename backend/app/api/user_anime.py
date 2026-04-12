@@ -10,7 +10,7 @@ from app.serializers import (
     AddAnimeRequest,
     UpdateAnimeRequest,
 )
-from app.services.anime_actors import ensure_actor_data, get_actor_overlap
+from app.services.anime_actors import ensure_actor_data, ensure_anime_exists, get_actor_overlap
 from app.services.auth import get_current_user_id
 from app.services.mal_api import MALApiError, MALApiService
 from scrapers.animes import fetch_and_insert_anime_data
@@ -269,13 +269,18 @@ async def get_anime_overlap(
     request: Request,
     user_id: int = Depends(get_current_user_id),
 ) -> list[dict[str, Any]]:
-    animes = db.get_records('anime', {'mal_id': mal_id})
-    if not animes:
+    try:
+        anime = await ensure_anime_exists(mal_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f'Could not fetch anime info: {str(e)}',
+        )
+    if not anime:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Anime with MAL ID {mal_id} not found in database',
+            detail=f'Could not find or create anime with MAL ID {mal_id}',
         )
-    anime = animes[0]
 
     try:
         await ensure_actor_data(anime['id'], mal_id)
