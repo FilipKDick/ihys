@@ -1,7 +1,15 @@
+export interface AppearsInEntry {
+  id: number
+  name: string
+  mal_id: number | null
+  character_name: string
+  character_photo: string | null
+}
+
 export interface OverlapResult {
   actor: { id: number; name: string; photo: string | null }
   character_in_new_anime: { id: number; name: string; photo: string | null } | null
-  appears_in: Array<{ id: number; name: string; mal_id: number | null }>
+  appears_in: AppearsInEntry[]
 }
 
 export const useAnimeOverlap = () => {
