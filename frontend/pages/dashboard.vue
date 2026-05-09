@@ -140,18 +140,22 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
           {{ overlap.length }} shared voice actor{{ overlap.length !== 1 ? 's' : '' }}
         </p>
         <div class="flex flex-col md:flex-row gap-4 items-start">
-          <!-- Actor list -->
+          <!-- Actor list (+ inline panel on mobile) -->
           <div class="flex flex-col gap-3 w-full md:w-1/2 md:flex-shrink-0">
-            <ActorCard
-              v-for="item in overlap"
-              :key="item.actor.id"
-              :item="item"
-              :selected="selectedActor?.actor.id === item.actor.id"
-              @select="selectedActor = $event"
-            />
+            <template v-for="item in overlap" :key="item.actor.id">
+              <ActorCard
+                :item="item"
+                :selected="selectedActor?.actor.id === item.actor.id"
+                @select="selectedActor = $event"
+              />
+              <!-- On mobile: panel appears immediately below the selected actor -->
+              <div v-if="selectedActor?.actor.id === item.actor.id" class="md:hidden">
+                <ActorDetailPanel :actor="selectedActor" />
+              </div>
+            </template>
           </div>
-          <!-- Detail panel: always visible on desktop, only when actor selected on mobile -->
-          <div class="flex-1 md:sticky md:top-4 w-full" :class="{ 'hidden md:block': !selectedActor }">
+          <!-- Detail panel: desktop only -->
+          <div v-if="selectedActor" class="hidden md:block flex-1 sticky top-4">
             <ActorDetailPanel :actor="selectedActor" />
           </div>
         </div>
