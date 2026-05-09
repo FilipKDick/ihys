@@ -1,4 +1,5 @@
 import logging
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -11,7 +12,11 @@ from app.serializers import (
     AddAnimeRequest,
     UpdateAnimeRequest,
 )
-from app.services.anime_actors import ensure_actor_data, ensure_anime_exists, get_actor_overlap
+from app.services.anime_actors import (
+    ensure_actor_data,
+    ensure_anime_exists,
+    get_actor_overlap,
+)
 from app.services.auth import get_current_user_id
 from app.services.mal_api import MALApiError, MALApiService
 from scrapers.animes import fetch_and_insert_anime_data
@@ -102,10 +107,11 @@ async def add_anime_manually(
                     )
                     if anime_model and hasattr(anime_model, 'id') and anime_model.id:
                         anime = db.get_record_by_id('anime', anime_model.id)
-            except Exception as e:
+            except Exception:
+                logger.exception('Failed to scrape anime from URL for user %s', user_id)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f'Failed to scrape anime from URL: {e!s}',
+                    detail='Failed to scrape anime from URL',
                 )
 
         if not anime:
@@ -237,10 +243,11 @@ async def update_anime_status(
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
+        logger.exception('Failed to update anime status for %s', user_anime_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'Failed to update anime: {e!s}',
+            detail='Failed to update anime',
         )
 
 
@@ -262,10 +269,11 @@ async def remove_anime_from_list(
         return {'message': 'Anime removed from your list'}
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
+        logger.exception('Failed to remove anime %s for user', user_anime_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'Failed to remove anime: {e!s}',
+            detail='Failed to remove anime',
         )
 
 
@@ -277,10 +285,11 @@ async def get_anime_overlap(
 ) -> list[dict[str, Any]]:
     try:
         anime = await ensure_anime_exists(mal_id)
-    except Exception as e:
+    except Exception:
+        logger.exception('Failed to fetch anime info for MAL ID %s', mal_id)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f'Could not fetch anime info: {str(e)}',
+            detail='Could not fetch anime info',
         )
     if not anime:
         raise HTTPException(
@@ -290,10 +299,11 @@ async def get_anime_overlap(
 
     try:
         await ensure_actor_data(anime['id'], mal_id)
-    except Exception as e:
+    except Exception:
+        logger.exception('Failed to fetch actor data for MAL ID %s', mal_id)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f'Could not fetch actor data: {e!s}',
+            detail='Could not fetch actor data',
         )
 
     return get_actor_overlap(mal_id, user_id)
