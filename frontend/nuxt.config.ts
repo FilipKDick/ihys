@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/ui'
   ],
+  css: ['~/assets/css/main.css'],
   runtimeConfig: {
     // This makes the variable available on both server and client side
     public: {

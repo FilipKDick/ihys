@@ -1,14 +1,16 @@
-FROM node:24-bookworm as builder
+FROM node:24-bookworm as base
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npm run build
 
-FROM builder as dev
+FROM base as dev
 # This is set in docker-compose for dev
 CMD ["npm", "run", "dev"]
+
+FROM base as builder
+RUN npm run build
 
 FROM builder as prod
 COPY --from=builder /app/.output ./.output
