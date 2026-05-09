@@ -1,6 +1,11 @@
-import aiohttp
 import logging
 
+from datetime import datetime, timezone
+
+import aiohttp
+import httpx
+
+from app.core.config import settings
 from app.db.connection import db
 from scrapers.characters import fetch_and_insert_actors_data
 
@@ -8,20 +13,21 @@ logger = logging.getLogger(__name__)
 
 
 async def ensure_anime_exists(mal_id: int) -> dict | None:
-    """Find anime in DB by MAL ID, or create a minimal record by fetching from MAL API."""
+    """Find anime by MAL ID, or create a minimal record from MAL API."""
     existing = db.get_records('anime', {'mal_id': mal_id})
     if existing:
         return existing[0]
-
-    import httpx
-    from app.core.config import settings
-    from datetime import datetime, timezone
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
             f'https://api.myanimelist.net/v2/anime/{mal_id}',
             headers={'X-MAL-CLIENT-ID': settings.MAL_CLIENT_ID},
-            params={'fields': 'id,title,num_episodes,synopsis,mean,rank,popularity,genres,status'},
+            params={
+                'fields': (
+                    'id,title,num_episodes,synopsis,mean,rank,popularity,'
+                    'genres,status'
+                ),
+            },
         )
         if response.status_code != 200:
             logger.error(f'MAL API failed for mal_id={mal_id}: {response.status_code}')
@@ -43,19 +49,24 @@ async def ensure_anime_exists(mal_id: int) -> dict | None:
     return db.insert_record('anime', anime_data)
 
 
-async def ensure_actor_data(anime_id: int, mal_id: int) -> None:
-    """Scrape and store actor/character data for an anime if not already in DB."""
-    existing = db.get_records('characters', {'anime_id': anime_id})
-    if existing:
-        return
-
+async def fetch_actor_data(anime_id: int, mal_id: int) -> None:
+    """Scrape and upsert actor/character data for an anime unconditionally."""
     characters_url = f'https://myanimelist.net/anime/{mal_id}/characters'
     logger.info(f'Scraping actors for anime_id={anime_id} mal_id={mal_id}')
     async with aiohttp.ClientSession() as session:
         await fetch_and_insert_actors_data(session, characters_url, anime_id)
 
 
-def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
+async def ensure_actor_data(anime_id: int, mal_id: int) -> None:
+    """Scrape and store actor/character data for an anime if not already in DB."""
+    existing = db.get_records('characters', {'anime_id': anime_id})
+    if existing:
+        return
+
+    await fetch_actor_data(anime_id, mal_id)
+
+
+def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:  # noqa: C901
     """
     Return actors who appear in the given anime AND in the user's watch history.
 
@@ -79,14 +90,24 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
     char_ids_in_anime = [c['id'] for c in chars_in_anime]
 
     # 3. Actors for those characters
-    ca_in_anime = db.get_records_by_ids('character_actors', 'character_id', char_ids_in_anime)
+    ca_in_anime = db.get_records_by_ids(
+        'character_actors',
+        'character_id',
+        char_ids_in_anime,
+    )
     actor_ids_in_anime = {ca['actor_id'] for ca in ca_in_anime}
 
     # 4. User's watch history
     user_anime_records = db.get_records('user_anime', {'user_id': user_id})
     if not user_anime_records:
         return []
-    user_anime_ids = [ua['anime_id'] for ua in user_anime_records]
+    user_anime_ids = [
+        ua['anime_id']
+        for ua in user_anime_records
+        if ua['anime_id'] != anime_db_id
+    ]
+    if not user_anime_ids:
+        return []
 
     # 5. Characters in watched anime
     chars_in_history = db.get_records_by_ids('characters', 'anime_id', user_anime_ids)
@@ -95,7 +116,11 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
     char_ids_in_history = [c['id'] for c in chars_in_history]
 
     # 6. Actors in watched anime
-    ca_in_history = db.get_records_by_ids('character_actors', 'character_id', char_ids_in_history)
+    ca_in_history = db.get_records_by_ids(
+        'character_actors',
+        'character_id',
+        char_ids_in_history,
+    )
     actor_ids_in_history = {ca['actor_id'] for ca in ca_in_history}
 
     # 7. Intersection
@@ -109,13 +134,18 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
 
     actor_to_new_char: dict[int, dict | None] = {}
     for ca in ca_in_anime:
-        if ca['actor_id'] in shared_actor_ids and ca['actor_id'] not in actor_to_new_char:
+        if (
+            ca['actor_id'] in shared_actor_ids
+            and ca['actor_id'] not in actor_to_new_char
+        ):
             actor_to_new_char[ca['actor_id']] = char_map.get(ca['character_id'])
 
     actor_to_history_char_ids: dict[int, list[int]] = {}
     for ca in ca_in_history:
         if ca['actor_id'] in shared_actor_ids:
-            actor_to_history_char_ids.setdefault(ca['actor_id'], []).append(ca['character_id'])
+            actor_to_history_char_ids.setdefault(ca['actor_id'], []).append(
+                ca['character_id'],
+            )
 
     # 9. Build results
     # Batch-fetch all watched anime for the cache
@@ -151,10 +181,20 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:
             seen_anime_ids.add(aid)
             a = anime_cache.get(aid, {})
             if a:
-                appears_in.append({'id': a['id'], 'name': a['name'], 'mal_id': a.get('mal_id')})
+                appears_in.append({
+                    'id': a['id'],
+                    'name': a['name'],
+                    'mal_id': a.get('mal_id'),
+                    'character_name': char['name'],
+                    'character_photo': char.get('photo') or None,
+                })
 
         result.append({
-            'actor': {'id': actor['id'], 'name': actor['name'], 'photo': actor.get('photo')},
+            'actor': {
+                'id': actor['id'],
+                'name': actor['name'],
+                'photo': actor.get('photo'),
+            },
             'character_in_new_anime': {
                 'id': char_in_new['id'],
                 'name': char_in_new['name'],
