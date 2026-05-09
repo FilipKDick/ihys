@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -14,6 +15,8 @@ from app.services.anime_actors import ensure_actor_data, ensure_anime_exists, ge
 from app.services.auth import get_current_user_id
 from app.services.mal_api import MALApiError, MALApiService
 from scrapers.animes import fetch_and_insert_anime_data
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -45,10 +48,11 @@ async def get_user_anime_list(
                 )
 
         return result
-    except Exception as e:
+    except Exception:
+        logger.exception('Failed to fetch anime list for user %s', user_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'Failed to fetch anime list: {e!s}',
+            detail='Failed to fetch anime list',
         )
 
 
@@ -68,10 +72,11 @@ async def sync_mal_anime_list(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f'MAL API error: {e!s}',
         )
-    except Exception as e:
+    except Exception:
+        logger.exception('Sync failed for user %s', user_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'Sync failed: {e!s}',
+            detail='Sync failed',
         )
 
 
@@ -164,10 +169,11 @@ async def add_anime_manually(
         }
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
+        logger.exception('Failed to add anime for user %s', user_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f'Failed to add anime: {e!s}',
+            detail='Failed to add anime',
         )
 
 
