@@ -1,13 +1,16 @@
 import secrets
+
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 import httpx
+
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
 
 from app.core.config import settings
 from app.db.connection import db
-from app.services.auth import get_current_user
+from app.services.auth import create_session, delete_session, get_current_user
 from app.services.oauth import client
 from app.services.security import encrypt_token
 
@@ -38,7 +41,9 @@ async def callback(request: Request, code: str) -> Response:
     if not code_verifier:
         return Response('Authorization error: No code verifier found.', status_code=400)
 
-    token_data = await client.get_access_token(code, CALLBACK_URL, code_verifier=code_verifier)
+    token_data = await client.get_access_token(
+        code, CALLBACK_URL, code_verifier=code_verifier,
+    )
     access_token = token_data['access_token']
     expires_in = token_data['expires_in']
     expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
@@ -50,7 +55,10 @@ async def callback(request: Request, code: str) -> Response:
             headers=headers,
         )
         if user_response.status_code != 200:
-            return Response(f'Failed to fetch MAL user info: {user_response.status_code}', status_code=502)
+            return Response(
+                f'Failed to fetch MAL user info: {user_response.status_code}',
+                status_code=502,
+            )
         user_info = user_response.json()
 
     mal_id = str(user_info['id'])
@@ -68,17 +76,29 @@ async def callback(request: Request, code: str) -> Response:
     if not user:
         return Response('Failed to persist user record.', status_code=500)
 
+    token = create_session(user['id'])
+
     response = RedirectResponse(url=f'{settings.FRONTEND_URL}/dashboard')
     response.set_cookie(
         key='session_id',
-        value=f'user-{user["id"]}',
+        value=token,
         httponly=True,
         secure=not settings.DEBUG,
         samesite='lax',
+        max_age=60 * 60 * 24 * 30,
     )
     return response
 
 
+@router.post('/logout')
+async def logout(request: Request, response: Response) -> dict:
+    token = request.cookies.get('session_id')
+    if token:
+        delete_session(token)
+    response.delete_cookie('session_id')
+    return {'ok': True}
+
+
 @router.get('/me')
-async def get_me(user: dict = Depends(get_current_user)) -> dict:
+async def get_me(user: Annotated[dict, Depends(get_current_user)]) -> dict:
     return {'id': user['id'], 'username': user['mal_username']}
