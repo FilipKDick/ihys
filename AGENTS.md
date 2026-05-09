@@ -1,7 +1,13 @@
 # Agent Guidelines for IHYS
 
+## Purpose
+
+IHYS helps a user's girlfriend discover shared voice actors across anime. When she starts watching a new anime, she wants to know which voice actors in it she's already heard — i.e., which actors also voiced characters in animes she's previously watched. MAL has this data but it's not surfaced in a user-friendly way, so this app aggregates it and shows the overlap.
+
 ## Build/Test/Lint Commands
-- Backend: `cd backend && ruff check .` (lint), `ruff format .` (format), `mypy .` (type check)
+
+Backend commands run inside the Docker container:
+- Backend: `docker-compose exec backend ruff check .` (lint), `docker-compose exec backend ruff format .` (format), `docker-compose exec backend mypy .` (type check)
 - Frontend: `cd frontend && npm run dev` (dev), `npm run build` (build), `npm run lint` (lint)
 - Docker: `docker-compose up` (run services), `DOCKER_TARGET=prod docker-compose up` (production)
 - Pre-commit: `pre-commit run --all-files` (run all checks)
