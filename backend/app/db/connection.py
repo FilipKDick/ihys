@@ -1,76 +1,111 @@
-from supabase import create_client, Client
-from app.core.config import settings
 import logging
 
-# Set up logging
+from typing import Any
+
+import psycopg_pool
+
+from psycopg.rows import dict_row
+
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
-# Main Supabase client for server-side operations
-supabase: Client = create_client(
-    settings.SUPABASE_URL,
-    settings.SUPABASE_SERVICE_KEY
-)
+_pool: psycopg_pool.ConnectionPool | None = None
+
+
+def get_pool() -> psycopg_pool.ConnectionPool:
+    global _pool
+    if _pool is None:
+        _pool = psycopg_pool.ConnectionPool(
+            settings.DATABASE_URL,
+            kwargs={'row_factory': dict_row},
+            min_size=2,
+            max_size=10,
+        )
+    return _pool
 
 
 class DatabaseOperations:
-    @staticmethod
-    def insert_record(table_name: str, data: dict):
-        result = supabase.table(table_name).insert(data).execute()
-        return result.data[0] if result.data else None
+    def _execute(
+        self,
+        sql: str,
+        params: tuple | dict | None = None,
+        *,
+        fetch: str = 'one',
+    ) -> Any:
+        with get_pool().connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                if fetch == 'all':
+                    return cur.fetchall()
+                if fetch == 'one':
+                    return cur.fetchone()
+                return None
 
-    @staticmethod
-    def get_record_by_id(table_name: str, record_id: int):
-        result = supabase.table(table_name).select("*").eq("id", record_id).execute()
-        return result.data[0] if result.data else None
+    def insert_record(self, table_name: str, data: dict) -> dict | None:
+        cols = ', '.join(data.keys())
+        placeholders = ', '.join(f'%({k})s' for k in data.keys())
+        sql = f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders}) RETURNING *'  # noqa: S608
+        return self._execute(sql, data)
 
-    @staticmethod
-    def get_records(table_name: str, filters: dict | None = None, limit: int | None = None):
-        query = supabase.table(table_name).select("*")
+    def get_record_by_id(self, table_name: str, record_id: int) -> dict | None:
+        sql = f'SELECT * FROM {table_name} WHERE id = %s'  # noqa: S608
+        return self._execute(sql, (record_id,))
 
+    def get_records(
+        self,
+        table_name: str,
+        filters: dict | None = None,
+        limit: int | None = None,
+    ) -> list[dict]:
+        sql = f'SELECT * FROM {table_name}'  # noqa: S608
+        params: list = []
         if filters:
-            for key, value in filters.items():
-                query = query.eq(key, value)
-
+            conditions = ' AND '.join(f'{k} = %s' for k in filters.keys())
+            sql += f' WHERE {conditions}'
+            params = list(filters.values())
         if limit:
-            query = query.limit(limit)
+            sql += f' LIMIT {limit}'
+        result = self._execute(sql, tuple(params) if params else None, fetch='all')
+        return result or []
 
-        result = query.execute()
-        return result.data
-
-    @staticmethod
-    def get_records_by_ids(table_name: str, column: str, ids: list[int]) -> list[dict]:
+    def get_records_by_ids(
+        self, table_name: str, column: str, ids: list[int],
+    ) -> list[dict]:
         if not ids:
             return []
-        result = supabase.table(table_name).select('*').in_(column, ids).execute()
-        return result.data or []
+        sql = f'SELECT * FROM {table_name} WHERE {column} = ANY(%s)'  # noqa: S608
+        result = self._execute(sql, (ids,), fetch='all')
+        return result or []
 
-    @staticmethod
-    def update_record(table_name: str, record_id: int, data: dict):
-        result = supabase.table(table_name).update(data).eq("id", record_id).execute()
-        return result.data[0] if result.data else None
+    def update_record(
+        self, table_name: str, record_id: int, data: dict,
+    ) -> dict | None:
+        assignments = ', '.join(f'{k} = %({k})s' for k in data.keys())
+        sql = f'UPDATE {table_name} SET {assignments} WHERE id = %(id)s RETURNING *'  # noqa: S608
+        return self._execute(sql, {**data, 'id': record_id})
 
-    @staticmethod
-    def delete_record(table_name: str, record_id: int):
-        result = supabase.table(table_name).delete().eq("id", record_id).execute()
-        return result.data[0] if result.data else None
+    def delete_record(self, table_name: str, record_id: int) -> dict | None:
+        sql = f'DELETE FROM {table_name} WHERE id = %s RETURNING *'  # noqa: S608
+        return self._execute(sql, (record_id,))
 
-    @staticmethod
-    def upsert_record(table_name: str, data: dict, conflict_columns: list[str]):
-        logger.info(f"🔍 Upserting into {table_name}: {data}")
-        logger.info(f"🔍 Conflict columns: {conflict_columns}")
-        try:
-            result = supabase.table(table_name).upsert(
-                data,
-                on_conflict=','.join(conflict_columns)
-            ).execute()
-            logger.info(f"✅ Successfully upserted into {table_name}")
-            return result.data[0] if result.data else None
-        except Exception as e:
-            logger.error(f"❌ Upsert failed for {table_name}: {e}")
-            logger.error(f"📋 Data that failed: {data}")
-            logger.error(f"🔍 Exception type: {type(e).__name__}")
-            logger.error(f"🔍 Full error: {str(e)}")
-            raise
+    def upsert_record(
+        self, table_name: str, data: dict, conflict_columns: list[str],
+    ) -> dict | None:
+        cols = ', '.join(data.keys())
+        placeholders = ', '.join(f'%({k})s' for k in data.keys())
+        conflict = ', '.join(conflict_columns)
+        non_conflict_keys = [k for k in data.keys() if k not in conflict_columns]
+        if non_conflict_keys:
+            updates = ', '.join(f'{k} = EXCLUDED.{k}' for k in non_conflict_keys)
+            on_conflict = f'DO UPDATE SET {updates}'
+        else:
+            on_conflict = 'DO NOTHING'
+        sql = (
+            f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders}) '  # noqa: S608
+            f'ON CONFLICT ({conflict}) {on_conflict} RETURNING *'
+        )
+        return self._execute(sql, data)
 
-# Alias for easier imports
+
 db = DatabaseOperations()
