@@ -139,9 +139,9 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
         <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">
           {{ overlap.length }} shared voice actor{{ overlap.length !== 1 ? 's' : '' }}
         </p>
-        <div class="flex gap-4 items-start">
-          <!-- Left: actor list -->
-          <div class="flex flex-col gap-3 w-1/2 flex-shrink-0">
+        <div class="flex flex-col md:flex-row gap-4 items-start">
+          <!-- Actor list -->
+          <div class="flex flex-col gap-3 w-full md:w-1/2 md:flex-shrink-0">
             <ActorCard
               v-for="item in overlap"
               :key="item.actor.id"
@@ -150,8 +150,8 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
               @select="selectedActor = $event"
             />
           </div>
-          <!-- Right: detail panel -->
-          <div class="flex-1 sticky top-4">
+          <!-- Detail panel: always visible on desktop, only when actor selected on mobile -->
+          <div class="flex-1 md:sticky md:top-4 w-full" :class="{ 'hidden md:block': !selectedActor }">
             <ActorDetailPanel :actor="selectedActor" />
           </div>
         </div>
