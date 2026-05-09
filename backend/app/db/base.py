@@ -1,11 +1,13 @@
+from typing import ClassVar
+
 from pydantic import BaseModel
 
 from app.db.connection import db
 
 
 class DataBaseModel(BaseModel):
-    __tablename__: str
-    __unique_fields__: list[str] = []
+    __tablename__: ClassVar[str]
+    __unique_fields__: ClassVar[list[str]] = []
 
     def save(self):
         saved_data = db.upsert_record(
