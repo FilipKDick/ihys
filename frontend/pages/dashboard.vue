@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { OverlapResult } from '~/composables/useAnimeOverlap'
+
 const { user, checkAuth } = useAuth()
 const config = useRuntimeConfig()
 
@@ -16,7 +18,7 @@ const showDropdown = computed(() => searchResults.value.length > 0)
 
 const { overlap, loading: loadingOverlap, error: overlapError, fetchOverlap } = useAnimeOverlap()
 const selectedAnime = ref<{ mal_id: number; title: string } | null>(null)
-const selectedActor = ref<import('~/composables/useAnimeOverlap').OverlapResult | null>(null)
+const selectedActor = ref<OverlapResult | null>(null)
 
 onMounted(async () => {
   const authenticated = await checkAuth()
