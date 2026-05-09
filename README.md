@@ -1,0 +1,179 @@
+# IHYS — I Heard Your Seiyuu
+
+Discover shared voice actors between anime. When starting a new show, IHYS tells you which voice actors you've already heard — actors who voiced characters in anime on your watchlist.
+
+Data is pulled from [MyAnimeList](https://myanimelist.net). Auth is OAuth via MAL.
+
+---
+
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) with Compose v2 (`docker compose` not `docker-compose`)
+- A [MyAnimeList API application](https://myanimelist.net/apiconfig) (free, takes ~2 minutes to create)
+- Python 3.13+ — only needed locally to generate the encryption key
+
+---
+
+## First-time setup
+
+### 1. Clone
+
+```bash
+git clone <repo-url>
+cd ihys
+```
+
+### 2. Create a MAL API application
+
+Go to https://myanimelist.net/apiconfig and create a new application:
+
+- **App Type:** Web
+- **App Redirect URL:** `http://localhost:8002/api/auth/callback` (dev) or `https://yourdomain.com/api/auth/callback` (prod)
+
+Note your **Client ID** and **Client Secret**.
+
+### 3. Generate an encryption key
+
+The app encrypts MAL OAuth tokens at rest using Fernet. Generate a key once:
+
+```bash
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+Keep this key safe — losing it means all stored tokens become unreadable.
+
+### 4. Configure the backend
+
+```bash
+cp .env.backend.dist .env.backend
+```
+
+Edit `.env.backend`:
+
+```env
+DATABASE_URL=postgresql://ihys:ihys@postgres:5432/ihys   # leave as-is for dev
+MAL_CLIENT_ID=<your MAL client ID>
+MAL_CLIENT_SECRET=<your MAL client secret>
+ENCRYPTION_KEY=<key from step 3>
+FRONTEND_URL=http://localhost:3000                        # dev default
+BACKEND_URL=http://localhost:8002                         # dev default
+DEBUG=True
+```
+
+### 5. Configure the frontend
+
+```bash
+cp .env.frontend.dist .env.frontend
+```
+
+Edit `.env.frontend`:
+
+```env
+NUXT_PUBLIC_API_BASE_URL=http://localhost:8002   # dev: absolute URL to backend
+```
+
+> **Note:** The dist file contains `/api` (for production behind a reverse proxy). For local dev, change it to `http://localhost:8002`.
+
+---
+
+## Running locally (dev)
+
+```bash
+docker compose up
+```
+
+- Frontend: http://localhost:3000
+- Backend API docs: http://localhost:8002/docs
+- Postgres: `localhost:5433` (user: `ihys`, password: `ihys`, db: `ihys`)
+
+Code changes are picked up automatically — the backend uses `--reload` and the frontend uses Nuxt dev server with HMR. No rebuild needed.
+
+---
+
+## Running in production
+
+### 1. Fill in env files with production values
+
+`.env.backend`:
+```env
+DATABASE_URL=postgresql://ihys:CHANGE_ME@postgres:5432/ihys
+MAL_CLIENT_ID=<your MAL client ID>
+MAL_CLIENT_SECRET=<your MAL client secret>
+ENCRYPTION_KEY=<key from step 3>
+FRONTEND_URL=https://yourdomain.com
+BACKEND_URL=https://yourdomain.com
+DEBUG=False
+```
+
+`.env.frontend`:
+```env
+NUXT_PUBLIC_API_BASE_URL=/api
+```
+
+### 2. Start
+
+```bash
+DOCKER_TARGET=prod docker compose up -d --build
+```
+
+### 3. Reverse proxy
+
+The stack exposes:
+- Backend on `127.0.0.1:8002`
+- Frontend on `127.0.0.1:3000`
+
+Configure your reverse proxy (nginx, Caddy, etc.) to route on the same domain:
+- `yourdomain.com/api/*` → `http://127.0.0.1:8002`
+- `yourdomain.com/*` → `http://127.0.0.1:3000`
+
+TLS is handled by your reverse proxy — not by this stack.
+
+---
+
+## Database migrations
+
+Migrations in `supabase/migrations/` are applied automatically on **first volume init** via `docker-entrypoint-initdb.d`. They do not re-run on subsequent starts.
+
+To apply a new migration manually:
+
+```bash
+docker compose exec postgres psql -U ihys -d ihys -f /dev/stdin < supabase/migrations/your_migration.sql
+```
+
+---
+
+## Useful commands
+
+```bash
+# View logs
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Run backend tests
+docker compose exec backend pytest -v
+
+# Lint backend
+docker compose exec backend ruff check .
+
+# Connect to Postgres
+psql postgresql://ihys:ihys@localhost:5433/ihys
+
+# Stop everything
+docker compose down
+
+# Stop and wipe database
+docker compose down -v
+```
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Nuxt 4, Vue 3, TypeScript, Tailwind (@nuxt/ui) |
+| Backend | FastAPI, Python 3.13, psycopg3 |
+| Database | PostgreSQL 17 |
+| Auth | MAL OAuth 2.0 (PKCE), server-side sessions |
+| Scraping | BeautifulSoup (MAL character pages) |
+| Container | Docker Compose |
