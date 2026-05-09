@@ -1,10 +1,27 @@
 services:
+  postgres:
+    image: postgres:17
+    container_name: ihys_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ihys
+      POSTGRES_USER: ihys
+      POSTGRES_PASSWORD: ihys
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ihys -d ihys"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     container_name: ihys_backend
     build:
       context: ./backend
-      # Use DOCKER_TARGET env var to switch between 'dev' and 'prod' stages
-      # Defaults to 'dev' if not set
       target: ${DOCKER_TARGET:-dev}
     restart: unless-stopped
     ports:
@@ -13,6 +30,9 @@ services:
       - ./backend:/app
     env_file:
       - ./.env.backend
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   frontend:
     container_name: ihys_frontend
@@ -32,3 +52,6 @@ services:
       - NUXT_HOST=0.0.0.0
     depends_on:
       - backend
+
+volumes:
+  postgres_data:
