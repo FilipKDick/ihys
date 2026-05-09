@@ -42,7 +42,21 @@ python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().
 
 Keep this key safe — losing it means all stored tokens become unreadable.
 
-### 4. Configure the backend
+### 4. Configure Postgres credentials
+
+```bash
+cp .env.dist .env
+```
+
+Edit `.env` — this file is auto-loaded by Docker Compose for variable substitution in `compose.yml`:
+
+```env
+POSTGRES_DB=ihys
+POSTGRES_USER=ihys
+POSTGRES_PASSWORD=choose_a_strong_password
+```
+
+### 5. Configure the backend
 
 ```bash
 cp .env.backend.dist .env.backend
@@ -51,7 +65,7 @@ cp .env.backend.dist .env.backend
 Edit `.env.backend`:
 
 ```env
-DATABASE_URL=postgresql://ihys:ihys@postgres:5432/ihys   # leave as-is for dev
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 MAL_CLIENT_ID=<your MAL client ID>
 MAL_CLIENT_SECRET=<your MAL client secret>
 ENCRYPTION_KEY=<key from step 3>
@@ -60,7 +74,9 @@ BACKEND_URL=http://localhost:8002                         # dev default
 DEBUG=True
 ```
 
-### 5. Configure the frontend
+> The `${...}` vars are resolved from `.env` at runtime — you don't need to hardcode the password here.
+
+### 6. Configure the frontend
 
 ```bash
 cp .env.frontend.dist .env.frontend
@@ -84,7 +100,7 @@ docker compose up
 
 - Frontend: http://localhost:3000
 - Backend API docs: http://localhost:8002/docs
-- Postgres: `localhost:5433` (user: `ihys`, password: `ihys`, db: `ihys`)
+- Postgres: `localhost:5433` (credentials from your `.env`)
 
 Code changes are picked up automatically — the backend uses `--reload` and the frontend uses Nuxt dev server with HMR. No rebuild needed.
 
@@ -94,12 +110,19 @@ Code changes are picked up automatically — the backend uses `--reload` and the
 
 ### 1. Fill in env files with production values
 
+`.env`:
+```env
+POSTGRES_DB=ihys
+POSTGRES_USER=ihys
+POSTGRES_PASSWORD=choose_a_strong_password
+```
+
 `.env.backend`:
 ```env
-DATABASE_URL=postgresql://ihys:CHANGE_ME@postgres:5432/ihys
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 MAL_CLIENT_ID=<your MAL client ID>
 MAL_CLIENT_SECRET=<your MAL client secret>
-ENCRYPTION_KEY=<key from step 3>
+ENCRYPTION_KEY=<key from first-time setup>
 FRONTEND_URL=https://yourdomain.com
 BACKEND_URL=https://yourdomain.com
 DEBUG=False

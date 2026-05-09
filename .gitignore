@@ -21,6 +21,7 @@ dist/
 .output/
 .env.*
 !.env.*.dist
+!.env.dist
 
 # Superpowers brainstorming sessions
 .superpowers/
