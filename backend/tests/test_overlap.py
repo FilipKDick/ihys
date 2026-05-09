@@ -94,3 +94,25 @@ def test_returns_empty_when_user_has_no_history():
     with patch('app.services.anime_actors.db', db):
         result = get_actor_overlap(52991, 42)
     assert result == []
+
+
+def test_excludes_selected_anime_from_watch_history_overlap():
+    db = _make_db(
+        by_table={
+            ('anime', (('mal_id', 38668),)): [{'id': 1, 'name': 'Dorohedoro', 'mal_id': 38668}],
+            ('characters', (('anime_id', 1),)): [{'id': 100, 'name': 'Caiman', 'photo': '', 'anime_id': 1}],
+            ('user_anime', (('user_id', 42),)): [{'id': 1, 'user_id': 42, 'anime_id': 1}],
+        },
+        by_ids={
+            ('character_actors', 'character_id', frozenset({100})): [{'character_id': 100, 'actor_id': 10}],
+            ('characters', 'anime_id', frozenset({1})): [{'id': 100, 'name': 'Caiman', 'photo': '', 'anime_id': 1}],
+            ('actors', 'id', frozenset({10})): [{'id': 10, 'name': 'Takagi, Wataru', 'photo': ''}],
+            ('anime', 'id', frozenset({1})): [{'id': 1, 'name': 'Dorohedoro', 'mal_id': 38668}],
+        },
+        by_id={},
+    )
+
+    with patch('app.services.anime_actors.db', db):
+        result = get_actor_overlap(38668, 42)
+
+    assert result == []
