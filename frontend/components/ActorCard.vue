@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { OverlapResult } from '~/composables/useAnimeOverlap'
 
-const props = defineProps<{
+const { item, selected } = defineProps<{
   item: OverlapResult
   selected: boolean
 }>()
