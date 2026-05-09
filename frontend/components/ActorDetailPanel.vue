@@ -29,6 +29,9 @@ defineProps<{
         <div v-else class="w-16 h-16 rounded-full bg-gray-700 flex-shrink-0" aria-hidden="true" />
         <div>
           <p class="font-semibold text-lg leading-tight">{{ actor.actor.name }}</p>
+          <p v-if="actor.character_in_new_anime" class="text-sm text-gray-300">
+            as {{ actor.character_in_new_anime.name }} in this anime
+          </p>
           <p class="text-sm text-gray-400">
             {{ actor.appears_in.length }} role{{ actor.appears_in.length !== 1 ? 's' : '' }} in your watchlist
           </p>
@@ -36,7 +39,7 @@ defineProps<{
       </div>
 
       <!-- Role list -->
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-12rem)]">
         <div
           v-for="entry in actor.appears_in"
           :key="entry.id"
