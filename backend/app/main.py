@@ -1,9 +1,19 @@
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import anime, auth, user_anime
 from app.core.config import settings
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
 
 app = FastAPI()
 

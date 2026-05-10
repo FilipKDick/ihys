@@ -15,6 +15,9 @@ class Settings(BaseSettings):
 
     DEBUG: bool = False
 
+    # Observability — optional, disabled when unset
+    SENTRY_DSN: str | None = None
+
     model_config = SettingsConfigDict(env_file='.env.backend')
 
 
