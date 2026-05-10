@@ -85,10 +85,8 @@ cp .env.frontend.dist .env.frontend
 Edit `.env.frontend`:
 
 ```env
-NUXT_PUBLIC_API_BASE_URL=http://localhost:8002   # dev: absolute URL to backend
+NUXT_PUBLIC_API_BASE_URL=   # leave empty; fetch calls already use /api/* paths
 ```
-
-> **Note:** The dist file contains `/api` (for production behind a reverse proxy). For local dev, change it to `http://localhost:8002`.
 
 ---
 
@@ -131,11 +129,12 @@ DEBUG=False
 
 `.env.frontend`:
 ```env
-NUXT_PUBLIC_API_BASE_URL=/api
+NUXT_PUBLIC_API_BASE_URL=
 NODE_ENV=production
 ```
 
 > `NODE_ENV=production` is required to disable Nuxt devtools. Without it the debug toolbar will appear in the browser.
+> `NUXT_PUBLIC_API_BASE_URL` must be empty in production — fetch calls already include `/api/*` paths, and the reverse proxy handles routing. Setting it to `/api` causes double `/api/api/...` URLs.
 
 ### 2. Start
 
