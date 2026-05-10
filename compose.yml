@@ -17,6 +17,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - proxy
 
   backend:
     container_name: ihys_backend
@@ -31,6 +33,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - proxy
 
   frontend:
     container_name: ihys_frontend
@@ -46,6 +50,12 @@ services:
       - NUXT_HOST=0.0.0.0
     depends_on:
       - backend
+    networks:
+      - proxy
 
 volumes:
   postgres_data:
+
+networks:
+  proxy:
+    external: true
