@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
@@ -8,6 +9,46 @@ from app.services.mal_api import MALApiService
 @pytest.fixture
 def anyio_backend() -> str:
     return 'asyncio'
+
+
+@pytest.mark.anyio
+async def test_get_user_access_token_accepts_database_datetime() -> None:
+    service = MALApiService()
+    future = datetime.now(timezone.utc) + timedelta(hours=1)
+    db = MagicMock()
+    db.get_record_by_id.return_value = {
+        'id': 42,
+        'encrypted_access_token': 'encrypted-token',
+        'token_expires_at': future,
+    }
+
+    with (
+        patch('app.services.mal_api.db', db),
+        patch('app.services.mal_api.decrypt_token', return_value='access-token'),
+    ):
+        access_token = await service.get_user_access_token(42)
+
+    assert access_token == 'access-token'
+
+
+@pytest.mark.anyio
+async def test_get_user_access_token_accepts_iso_string_with_z() -> None:
+    service = MALApiService()
+    future = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    db = MagicMock()
+    db.get_record_by_id.return_value = {
+        'id': 42,
+        'encrypted_access_token': 'encrypted-token',
+        'token_expires_at': future.replace('+00:00', 'Z'),
+    }
+
+    with (
+        patch('app.services.mal_api.db', db),
+        patch('app.services.mal_api.decrypt_token', return_value='access-token'),
+    ):
+        access_token = await service.get_user_access_token(42)
+
+    assert access_token == 'access-token'
 
 
 @pytest.mark.anyio

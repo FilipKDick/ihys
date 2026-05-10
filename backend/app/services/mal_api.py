@@ -27,9 +27,15 @@ class MALApiService:
         if not user:
             raise MALApiError('User not found')
 
-        token_expires_at = datetime.fromisoformat(
-            user['token_expires_at'].replace('Z', '+00:00'),
-        )
+        token_expires_at_value = user['token_expires_at']
+        if isinstance(token_expires_at_value, datetime):
+            token_expires_at = token_expires_at_value
+        else:
+            token_expires_at = datetime.fromisoformat(
+                token_expires_at_value.replace('Z', '+00:00'),
+            )
+        if token_expires_at.tzinfo is None:
+            token_expires_at = token_expires_at.replace(tzinfo=timezone.utc)
         if token_expires_at <= datetime.now(timezone.utc):
             raise MALApiError('Token expired')
 
