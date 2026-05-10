@@ -115,6 +115,7 @@ Code changes are picked up automatically — the backend uses `--reload` and the
 POSTGRES_DB=ihys
 POSTGRES_USER=ihys
 POSTGRES_PASSWORD=choose_a_strong_password
+DOMAIN=yourdomain.com
 ```
 
 `.env.backend`:
@@ -123,8 +124,8 @@ DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${
 MAL_CLIENT_ID=<your MAL client ID>
 MAL_CLIENT_SECRET=<your MAL client secret>
 ENCRYPTION_KEY=<key from first-time setup>
-FRONTEND_URL=https://yourdomain.com
-BACKEND_URL=https://yourdomain.com
+FRONTEND_URL=https://${DOMAIN}
+BACKEND_URL=https://${DOMAIN}
 DEBUG=False
 ```
 
@@ -139,17 +140,11 @@ NUXT_PUBLIC_API_BASE_URL=/api
 DOCKER_TARGET=prod docker compose up -d --build
 ```
 
-### 3. Reverse proxy
+Caddy automatically obtains a TLS certificate from Let's Encrypt for the domain in `.env`. Make sure port 80 and 443 are open and the domain's DNS points to the server before starting.
 
-The stack exposes:
-- Backend on `127.0.0.1:8002`
-- Frontend on `127.0.0.1:3000`
+### 3. MAL OAuth callback
 
-Configure your reverse proxy (nginx, Caddy, etc.) to route on the same domain:
-- `yourdomain.com/api/*` → `http://127.0.0.1:8002`
-- `yourdomain.com/*` → `http://127.0.0.1:3000`
-
-TLS is handled by your reverse proxy — not by this stack.
+Register `https://yourdomain.com/api/auth/callback` as the redirect URL in your [MAL API application](https://myanimelist.net/apiconfig).
 
 ---
 
@@ -160,7 +155,7 @@ Migrations in `supabase/migrations/` are applied automatically on **first volume
 To apply a new migration manually:
 
 ```bash
-docker compose exec postgres psql -U ihys -d ihys -f /dev/stdin < supabase/migrations/your_migration.sql
+docker compose exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /dev/stdin < supabase/migrations/your_migration.sql
 ```
 
 ---

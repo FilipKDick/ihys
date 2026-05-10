@@ -17,8 +17,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    networks:
-      - proxy
 
   backend:
     container_name: ihys_backend
@@ -33,8 +31,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - proxy
 
   frontend:
     container_name: ihys_frontend
@@ -50,11 +46,29 @@ services:
       - NUXT_HOST=0.0.0.0
     depends_on:
       - backend
-    networks:
-      - proxy
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ihys_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN}
+    depends_on:
+      - backend
+      - frontend
 
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   proxy:
