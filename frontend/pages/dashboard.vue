@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { OverlapResult } from '~/composables/useAnimeOverlap'
 
+import { getWatchStatusClass, getWatchStatusLabel } from '~/composables/useWatchStatusStyles'
+
 const { user, checkAuth } = useAuth()
 const config = useRuntimeConfig()
 
@@ -177,7 +179,12 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
           @click="selectHistoryAnime(entry)"
         >
           <span>{{ entry.anime.name }}</span>
-          <span class="text-gray-500 capitalize">{{ entry.watch_status }}</span>
+          <span
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset"
+            :class="getWatchStatusClass(entry.watch_status)"
+          >
+            {{ getWatchStatusLabel(entry.watch_status) }}
+          </span>
         </button>
         <div v-if="watchHistory.length === 0" class="text-gray-500 text-sm">
           No anime yet — sync from MAL to get started.

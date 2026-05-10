@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { OverlapResult } from '~/composables/useAnimeOverlap'
 
+import { getWatchStatusClass, getWatchStatusLabel } from '~/composables/useWatchStatusStyles'
+
 defineProps<{
   actor: OverlapResult | null
 }>()
@@ -52,8 +54,16 @@ defineProps<{
             class="w-10 h-10 rounded object-cover flex-shrink-0"
           />
           <div v-else class="w-10 h-10 rounded bg-gray-700 flex-shrink-0" aria-hidden="true" />
-          <div>
-            <p class="text-blue-300 font-medium text-sm">{{ entry.name }}</p>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-start justify-between gap-2">
+              <p class="text-blue-300 font-medium text-sm">{{ entry.name }}</p>
+              <span
+                class="inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset"
+                :class="getWatchStatusClass(entry.watch_status)"
+              >
+                {{ getWatchStatusLabel(entry.watch_status) }}
+              </span>
+            </div>
             <p class="text-gray-400 text-xs">as {{ entry.character_name }}</p>
           </div>
         </div>
