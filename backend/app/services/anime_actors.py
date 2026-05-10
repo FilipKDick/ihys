@@ -7,7 +7,10 @@ import httpx
 
 from app.core.config import settings
 from app.db.connection import db
-from app.services.watch_status import watch_status_rank
+from app.services.watch_status import (
+    counts_for_actor_overlap_order,
+    watch_status_rank,
+)
 from scrapers.characters import fetch_and_insert_actors_data
 
 logger = logging.getLogger(__name__)
@@ -168,6 +171,13 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:  # noqa: C901
     actors_list = db.get_records_by_ids('actors', 'id', list(shared_actor_ids))
     actors_by_id = {a['id']: a for a in actors_list}
 
+    def counted_overlap_count(item: dict) -> int:
+        return sum(
+            1
+            for anime in item['appears_in']
+            if counts_for_actor_overlap_order(anime['watch_status'])
+        )
+
     for actor_id in shared_actor_ids:
         actor = actors_by_id.get(actor_id)
         if not actor:
@@ -219,5 +229,8 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:  # noqa: C901
 
     return sorted(
         result,
-        key=lambda item: (-len(item['appears_in']), item['actor']['name'].casefold()),
+        key=lambda item: (
+            -counted_overlap_count(item),
+            item['actor']['name'].casefold(),
+        ),
     )

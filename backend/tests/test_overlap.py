@@ -198,3 +198,56 @@ def test_orders_overlap_by_common_anime_count_and_status():
         'watching',
         'plan_to_watch',
     ]
+
+
+def test_orders_overlap_count_ignores_planned_anime():
+    db = _make_db(
+        by_table={
+            ('anime', (('mal_id', 52991),)): [
+                {'id': 1, 'name': 'Frieren', 'mal_id': 52991},
+            ],
+            ('characters', (('anime_id', 1),)): [
+                {'id': 100, 'name': 'Frieren', 'photo': '', 'anime_id': 1},
+                {'id': 101, 'name': 'Fern', 'photo': '', 'anime_id': 1},
+            ],
+            ('user_anime', (('user_id', 42),)): [
+                {'id': 1, 'user_id': 42, 'anime_id': 2, 'watch_status': 'completed'},
+                {'id': 2, 'user_id': 42, 'anime_id': 3, 'watch_status': 'plan_to_watch'},
+                {'id': 3, 'user_id': 42, 'anime_id': 4, 'watch_status': 'plan_to_watch'},
+            ],
+        },
+        by_ids={
+            ('character_actors', 'character_id', frozenset({100, 101})): [
+                {'character_id': 100, 'actor_id': 10},
+                {'character_id': 101, 'actor_id': 20},
+            ],
+            ('characters', 'anime_id', frozenset({2, 3, 4})): [
+                {'id': 200, 'name': 'Watched Role', 'photo': '', 'anime_id': 2},
+                {'id': 201, 'name': 'Planned Role A', 'photo': '', 'anime_id': 3},
+                {'id': 202, 'name': 'Planned Role B', 'photo': '', 'anime_id': 4},
+            ],
+            ('character_actors', 'character_id', frozenset({200, 201, 202})): [
+                {'character_id': 200, 'actor_id': 20},
+                {'character_id': 201, 'actor_id': 10},
+                {'character_id': 202, 'actor_id': 10},
+            ],
+            ('actors', 'id', frozenset({10, 20})): [
+                {'id': 10, 'name': 'Planned Actor', 'photo': ''},
+                {'id': 20, 'name': 'Watched Actor', 'photo': ''},
+            ],
+            ('anime', 'id', frozenset({2, 3, 4})): [
+                {'id': 2, 'name': 'Completed Show', 'mal_id': 2},
+                {'id': 3, 'name': 'Planned Show A', 'mal_id': 3},
+                {'id': 4, 'name': 'Planned Show B', 'mal_id': 4},
+            ],
+        },
+        by_id={},
+    )
+
+    with patch('app.services.anime_actors.db', db):
+        result = get_actor_overlap(52991, 42)
+
+    assert [item['actor']['name'] for item in result] == [
+        'Watched Actor',
+        'Planned Actor',
+    ]
