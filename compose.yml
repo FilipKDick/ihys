@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d
+      - ./migrations:/docker-entrypoint-initdb.d
     ports:
       - "127.0.0.1:5433:5432"
     healthcheck:
@@ -17,6 +17,33 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  umami_postgres:
+    image: postgres:17
+    container_name: ihys_umami_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${UMAMI_POSTGRES_DB}
+      POSTGRES_USER: ${UMAMI_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${UMAMI_POSTGRES_PASSWORD}
+    volumes:
+      - umami_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${UMAMI_POSTGRES_USER} -d ${UMAMI_POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: ihys_umami
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${UMAMI_POSTGRES_USER}:${UMAMI_POSTGRES_PASSWORD}@umami_postgres:5432/${UMAMI_POSTGRES_DB}
+      APP_SECRET: ${UMAMI_APP_SECRET}
+    depends_on:
+      umami_postgres:
+        condition: service_healthy
 
   backend:
     container_name: ihys_backend
@@ -67,6 +94,7 @@ services:
 
 volumes:
   postgres_data:
+  umami_postgres_data:
   caddy_data:
   caddy_config:
 
