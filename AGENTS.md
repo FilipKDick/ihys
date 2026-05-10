@@ -30,13 +30,13 @@ Backend commands run inside the Docker container:
 - Error handling: raise HTTPException for API errors
 
 ## TypeScript/Vue Code Style (Frontend)
-- Nuxt 3 + Vue 3 composition API
+- Nuxt 4 + Vue 3 composition API
 - Use TypeScript strict mode
 - ESLint with Nuxt defaults
 - Component naming: PascalCase for files
 - Composables in `composables/` directory
 
 ## Project Structure
-- `backend/`: FastAPI Python backend with Supabase
-- `frontend/`: Nuxt 3 TypeScript frontend
+- `backend/`: FastAPI Python backend (PostgreSQL via psycopg3)
+- `frontend/`: Nuxt 4 TypeScript frontend
 - Monorepo with Docker Compose for local development

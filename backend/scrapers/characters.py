@@ -117,7 +117,7 @@ def extract_actors_data_from_page(soup) -> Generator[dict[str, str], None, None]
 
 
 async def fetch_and_insert_actors_data(session, characters_url: str, anime_id: int):
-    """Fetch character and actor data from MAL and insert into Supabase."""
+    """Fetch character and actor data from MAL and insert into the database."""
     logger.info(f'👥 Fetching characters from: {characters_url} (anime_id: {anime_id})')
     soup = await get_soup_from_url(session, characters_url)
     if not soup:

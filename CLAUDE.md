@@ -35,23 +35,23 @@ There is no test suite currently.
 
 ## Architecture
 
-Who's That Seiyuu is an anime watchlist app with MAL (MyAnimeList) OAuth integration. Monorepo with a FastAPI backend and Nuxt 3 frontend, both containerized via Docker Compose.
+Who's That Seiyuu is an anime watchlist app with MAL (MyAnimeList) OAuth integration. Monorepo with a FastAPI backend and Nuxt 4 frontend, both containerized via Docker Compose.
 
 ### Backend (`backend/`)
 
-FastAPI app with Supabase (PostgreSQL) as the database. Key areas:
+FastAPI app with PostgreSQL (psycopg3) as the database. Key areas:
 
 - **`app/api/`** — Route handlers. `auth.py` handles MAL OAuth login/callback; `user_anime.py` handles CRUD for user anime lists.
 - **`app/services/`** — Business logic. `mal_api.py` syncs lists from the MAL API v2; `auth.py` manages sessions; `security.py` encrypts/decrypts MAL OAuth tokens with Fernet; `anime_download.py` fetches anime metadata.
-- **`app/db/`** — `connection.py` has the Supabase client and `DatabaseOperations` class; `models.py` has Pydantic models for DB entities (User, Anime, Character, etc.); `base.py` has the `DataBaseModel` base class with upsert support.
+- **`app/db/`** — `connection.py` has the psycopg3 connection pool and `DatabaseOperations` class; `models.py` has Pydantic models for DB entities (User, Anime, Character, etc.); `base.py` has the `DataBaseModel` base class with upsert support.
 - **`app/serializers.py`** — Request/response schemas (separate from DB models).
 - **`scrapers/`** — BeautifulSoup scrapers that pull anime metadata from MAL web pages.
 
-**Auth flow:** OAuth PKCE → MAL callback → tokens encrypted and stored in Supabase → session ID in httponly cookie.
+**Auth flow:** OAuth PKCE → MAL callback → tokens encrypted and stored in PostgreSQL → session ID in httponly cookie.
 
 ### Frontend (`frontend/`)
 
-Nuxt 3 + Vue 3 Composition API + TypeScript. Communicates with the backend API (configured via `NUXT_PUBLIC_API_BASE` env var, defaults to `http://localhost:8002`).
+Nuxt 4 + Vue 3 Composition API + TypeScript. Communicates with the backend API (configured via `NUXT_PUBLIC_API_BASE` env var, defaults to `http://localhost:8002`).
 
 ## Code Style
 

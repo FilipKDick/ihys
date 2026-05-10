@@ -152,12 +152,12 @@ Register `https://yourdomain.com/api/auth/callback` as the redirect URL in your 
 
 ## Database migrations
 
-Migrations in `supabase/migrations/` are applied automatically on **first volume init** via `docker-entrypoint-initdb.d`. They do not re-run on subsequent starts.
+Migrations in `migrations/` are applied automatically on **first volume init** via `docker-entrypoint-initdb.d`. They do not re-run on subsequent starts.
 
 To apply a new migration manually:
 
 ```bash
-docker compose exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /dev/stdin < supabase/migrations/your_migration.sql
+docker compose exec postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -f /dev/stdin < migrations/your_migration.sql
 ```
 
 ---
