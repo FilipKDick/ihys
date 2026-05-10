@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Purpose
 
-IHYS helps a user's girlfriend discover shared voice actors across anime. When she starts watching a new anime, she wants to know which voice actors in it she's already heard — i.e., which actors also voiced characters in animes she's previously watched. MAL has this data but it's not surfaced in a user-friendly way, so this app aggregates it and shows the overlap.
+Who's That Seiyuu helps a user's girlfriend discover shared voice actors across anime. When she starts watching a new anime, she wants to know which voice actors in it she's already heard — i.e., which actors also voiced characters in animes she's previously watched. MAL has this data but it's not surfaced in a user-friendly way, so this app aggregates it and shows the overlap.
 
 ## Commands
 
@@ -35,7 +35,7 @@ There is no test suite currently.
 
 ## Architecture
 
-IHYS is an anime watchlist app with MAL (MyAnimeList) OAuth integration. Monorepo with a FastAPI backend and Nuxt 3 frontend, both containerized via Docker Compose.
+Who's That Seiyuu is an anime watchlist app with MAL (MyAnimeList) OAuth integration. Monorepo with a FastAPI backend and Nuxt 3 frontend, both containerized via Docker Compose.
 
 ### Backend (`backend/`)
 

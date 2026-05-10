@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to drop all data from Supabase tables for IHYS project.
+Script to drop all data from Supabase tables for Who's That Seiyuu project.
 ⚠️  WARNING: This will DELETE ALL DATA from your tables!
 
 Requirements:
@@ -136,7 +136,7 @@ def clear_all_tables():
 
 def main():
     """Main function."""
-    print('🗑️  IHYS Supabase Data Cleanup Tool')
+    print('🗑️  Who\'s That Seiyuu Supabase Data Cleanup Tool')
     print('=' * 50)
     print(f'Database: {SUPABASE_URL}')
     print(f'Tables to clear: {", ".join(TABLES_TO_CLEAR)}')

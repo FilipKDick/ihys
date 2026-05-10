@@ -1,6 +1,6 @@
-# IHYS — I Heard Your Seiyuu
+# Who's That Seiyuu?
 
-Discover shared voice actors between anime. When starting a new show, IHYS tells you which voice actors you've already heard — actors who voiced characters in anime on your watchlist.
+Discover shared voice actors between anime. When starting a new show, Who's That Seiyuu tells you which voice actors you've already heard — actors who voiced characters in anime on your watchlist.
 
 Data is pulled from [MyAnimeList](https://myanimelist.net). Auth is OAuth via MAL.
 

@@ -90,7 +90,7 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
   <div class="max-w-5xl mx-auto p-4">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold">IHYS</h1>
+      <h1 class="text-2xl font-bold">Who's That Seiyuu?</h1>
       <div class="flex items-center gap-3">
         <span class="text-gray-400 text-sm">{{ user?.username }}</span>
         <UButton size="sm" variant="outline" :loading="syncing" @click="syncFromMal">
