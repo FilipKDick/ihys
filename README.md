@@ -132,7 +132,10 @@ DEBUG=False
 `.env.frontend`:
 ```env
 NUXT_PUBLIC_API_BASE_URL=/api
+NODE_ENV=production
 ```
+
+> `NODE_ENV=production` is required to disable Nuxt devtools. Without it the debug toolbar will appear in the browser.
 
 ### 2. Start
 
