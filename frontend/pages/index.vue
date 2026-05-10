@@ -23,6 +23,10 @@ const loginUrl = `${config.public.apiBase}/api/auth/login`
       <UButton :to="loginUrl" external size="lg" color="primary">
         Login with MyAnimeList
       </UButton>
+      <p class="mt-6 text-xs text-gray-600">
+        By logging in you agree to our
+        <NuxtLink to="/privacy" class="underline hover:text-gray-400">Privacy Policy</NuxtLink>.
+      </p>
     </div>
   </div>
 </template>
