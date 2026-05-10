@@ -8,13 +8,22 @@ export default defineNuxtConfig({
     '@nuxt/fonts',
     '@nuxt/icon',
     '@nuxt/image',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@sentry/nuxt/module'
   ],
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    // This makes the variable available on both server and client side
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || ''
+      apiBase: process.env.NUXT_PUBLIC_API_BASE_URL || '',
+      sentryDsn: process.env.NUXT_PUBLIC_SENTRY_DSN || '',
+      umamiWebsiteId: process.env.NUXT_PUBLIC_UMAMI_WEBSITE_ID || '',
+      umamiScriptUrl: process.env.NUXT_PUBLIC_UMAMI_SCRIPT_URL || '',
+    }
+  },
+  sentry: {
+    sourceMapsUploadOptions: {
+      org: '',
+      project: '',
     }
   }
 })
