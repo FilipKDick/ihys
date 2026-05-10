@@ -19,6 +19,7 @@ from app.services.anime_actors import (
 )
 from app.services.auth import get_current_user_id
 from app.services.mal_api import MALApiError, MALApiService
+from app.services.watch_status import watch_status_rank
 from scrapers.animes import fetch_and_insert_anime_data
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,13 @@ async def get_user_anime_list(
                     },
                 )
 
-        return result
+        return sorted(
+            result,
+            key=lambda entry: (
+                watch_status_rank(entry['watch_status']),
+                entry['anime'].get('name', '').casefold(),
+            ),
+        )
     except Exception:
         logger.exception('Failed to fetch anime list for user %s', user_id)
         raise HTTPException(

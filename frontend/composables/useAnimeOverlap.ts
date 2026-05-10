@@ -2,6 +2,7 @@ export interface AppearsInEntry {
   id: number
   name: string
   mal_id: number | null
+  watch_status: string
   character_name: string
   character_photo: string | null
 }

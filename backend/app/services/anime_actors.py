@@ -7,6 +7,7 @@ import httpx
 
 from app.core.config import settings
 from app.db.connection import db
+from app.services.watch_status import watch_status_rank
 from scrapers.characters import fetch_and_insert_actors_data
 
 logger = logging.getLogger(__name__)
@@ -106,6 +107,11 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:  # noqa: C901
         for ua in user_anime_records
         if ua['anime_id'] != anime_db_id
     ]
+    user_anime_status_by_anime_id = {
+        ua['anime_id']: ua.get('watch_status', '')
+        for ua in user_anime_records
+        if ua['anime_id'] != anime_db_id
+    }
     if not user_anime_ids:
         return []
 
@@ -185,9 +191,17 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:  # noqa: C901
                     'id': a['id'],
                     'name': a['name'],
                     'mal_id': a.get('mal_id'),
+                    'watch_status': user_anime_status_by_anime_id.get(aid, ''),
                     'character_name': char['name'],
                     'character_photo': char.get('photo') or None,
                 })
+
+        appears_in.sort(
+            key=lambda item: (
+                watch_status_rank(item['watch_status']),
+                item['name'].casefold(),
+            ),
+        )
 
         result.append({
             'actor': {
@@ -203,4 +217,7 @@ def get_actor_overlap(mal_id: int, user_id: int) -> list[dict]:  # noqa: C901
             'appears_in': appears_in,
         })
 
-    return result
+    return sorted(
+        result,
+        key=lambda item: (-len(item['appears_in']), item['actor']['name'].casefold()),
+    )
