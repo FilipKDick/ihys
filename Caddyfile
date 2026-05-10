@@ -9,3 +9,7 @@ www.{$DOMAIN} {
     # Frontend
     reverse_proxy * frontend:3000
 }
+
+analytics.{$DOMAIN} {
+    reverse_proxy umami:3000
+}
