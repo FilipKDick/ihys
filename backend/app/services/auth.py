@@ -45,7 +45,11 @@ def get_current_user(request: Request) -> dict[str, Any]:
         )
 
     session = rows[0]
-    expires_at = datetime.fromisoformat(session['expires_at'])
+    expires_at_value = session['expires_at']
+    if isinstance(expires_at_value, datetime):
+        expires_at = expires_at_value
+    else:
+        expires_at = datetime.fromisoformat(expires_at_value)
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires_at:

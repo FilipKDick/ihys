@@ -43,6 +43,24 @@ def test_get_current_user_returns_user_for_valid_token():
     assert user['id'] == 7
 
 
+def test_get_current_user_accepts_database_datetime_for_expires_at():
+    future = datetime.now(timezone.utc) + timedelta(hours=1)
+    db = MagicMock()
+    db.get_records.return_value = [
+        {'token': 'tok', 'user_id': 7, 'expires_at': future},
+    ]
+    db.get_record_by_id.return_value = {'id': 7, 'mal_username': 'testuser'}
+
+    from fastapi import Request
+    request = MagicMock(spec=Request)
+    request.cookies = {'session_id': 'tok'}
+
+    with patch('app.services.auth.db', db):
+        user = get_current_user(request)
+
+    assert user['id'] == 7
+
+
 def test_get_current_user_raises_401_for_missing_cookie():
     from fastapi import HTTPException, Request
     request = MagicMock(spec=Request)
@@ -76,7 +94,7 @@ def test_get_current_user_raises_401_for_expired_token():
     request = MagicMock(spec=Request)
     request.cookies = {'session_id': 'tok'}
 
-    with patch('app.services.auth.db', db):
+    with patch('app.services.auth.db', db), patch('app.services.auth.delete_session'):
         with pytest.raises(HTTPException) as exc:
             get_current_user(request)
     assert exc.value.status_code == 401
