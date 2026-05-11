@@ -75,6 +75,7 @@ async function selectAnime(anime: SelectableAnime) {
   selectedActor.value = null
   searchQuery.value = anime.title
   clearSearch()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   await fetchOverlap(anime.mal_id)
 }
 
