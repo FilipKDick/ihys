@@ -1,25 +1,25 @@
 const STATUS_STYLES: Record<string, { label: string; class: string }> = {
   completed: {
     label: 'Completed',
-    class: 'bg-emerald-950 text-emerald-300 ring-emerald-800',
+    class: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-800',
   },
   watching: {
     label: 'Watching',
-    class: 'bg-sky-950 text-sky-300 ring-sky-800',
+    class: 'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-800',
   },
   plan_to_watch: {
     label: 'Plan to watch',
-    class: 'bg-amber-950 text-amber-300 ring-amber-800',
+    class: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-800',
   },
   'plan to watch': {
     label: 'Plan to watch',
-    class: 'bg-amber-950 text-amber-300 ring-amber-800',
+    class: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-800',
   },
 }
 
 const DEFAULT_STATUS_STYLE = {
   label: 'Other',
-  class: 'bg-gray-800 text-gray-300 ring-gray-700',
+  class: 'bg-gray-100 text-gray-700 ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700',
 }
 
 function normalizeWatchStatus(status: string) {

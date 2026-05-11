@@ -14,8 +14,8 @@ const emit = defineEmits<{
 <template>
   <button
     type="button"
-    class="w-full text-left bg-gray-900 rounded-lg p-3 flex items-start gap-3 transition-all"
-    :class="selected ? 'ring-2 ring-blue-500' : 'hover:bg-gray-800'"
+    class="w-full text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-transparent rounded-lg p-3 flex items-start gap-3 transition-all"
+    :class="selected ? 'ring-2 ring-blue-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800'"
     :aria-pressed="selected"
     @click="emit('select', item)"
   >
@@ -24,18 +24,18 @@ const emit = defineEmits<{
       :src="item.actor.photo"
       :alt="item.actor.name"
       class="w-10 h-10 rounded-full object-cover flex-shrink-0"
-    />
-    <div v-else aria-hidden="true" class="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0" />
+    >
+    <div v-else aria-hidden="true" class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
     <div class="flex-1 min-w-0">
       <p class="font-medium truncate">{{ item.actor.name }}</p>
-      <p v-if="item.character_in_new_anime" class="text-sm text-gray-400 mb-2">
+      <p v-if="item.character_in_new_anime" class="text-sm text-gray-500 dark:text-gray-400 mb-2">
         as {{ item.character_in_new_anime.name }}
       </p>
       <div class="flex flex-wrap gap-2">
         <span
           v-for="a in item.appears_in"
           :key="a.id"
-          class="bg-gray-800 text-blue-300 text-xs px-2 py-1 rounded-full"
+          class="bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full"
         >
           {{ a.name }}
         </span>

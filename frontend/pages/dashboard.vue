@@ -92,10 +92,11 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
 <template>
   <div class="max-w-5xl mx-auto p-4">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold">Who's That Seiyuu?</h1>
-      <div class="flex items-center gap-3">
-        <span class="text-gray-400 text-sm">{{ user?.username }}</span>
+      <div class="flex flex-wrap items-center justify-end gap-3">
+        <span class="text-gray-500 dark:text-gray-400 text-sm">{{ user?.username }}</span>
+        <UColorModeSelect size="sm" class="w-32" />
         <UButton size="sm" variant="outline" :loading="syncing" @click="syncFromMal">
           Sync from MAL
         </UButton>
@@ -113,16 +114,16 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
       />
       <div
         v-if="showDropdown"
-        class="absolute z-10 w-full bg-gray-900 border border-gray-700 rounded-md shadow-lg mt-1 overflow-hidden"
+        class="absolute z-10 w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg mt-1 overflow-hidden"
       >
         <button
           v-for="anime in searchResults"
           :key="anime.mal_id"
-          class="w-full text-left px-4 py-2 hover:bg-gray-800 flex items-center justify-between text-sm"
+          class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-between text-sm"
           @click="selectAnime(anime)"
         >
           <span>{{ anime.title }}</span>
-          <span class="text-gray-500">{{ anime.year }}</span>
+          <span class="text-gray-500 dark:text-gray-400">{{ anime.year }}</span>
         </button>
       </div>
     </div>
@@ -131,15 +132,15 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
     <div v-if="selectedAnime" class="mt-8">
       <h2 class="text-lg font-semibold mb-1">{{ selectedAnime.title }}</h2>
 
-      <div v-if="loadingOverlap" class="text-gray-400 text-sm">
+      <div v-if="loadingOverlap" class="text-gray-500 dark:text-gray-400 text-sm">
         Fetching actor data... (first lookup may take a few seconds)
       </div>
-      <div v-else-if="overlapError" class="text-red-400 text-sm">{{ overlapError }}</div>
-      <div v-else-if="overlap.length === 0" class="text-gray-500 text-sm">
+      <div v-else-if="overlapError" class="text-red-600 dark:text-red-400 text-sm">{{ overlapError }}</div>
+      <div v-else-if="overlap.length === 0" class="text-gray-500 dark:text-gray-400 text-sm">
         No shared voice actors found.
       </div>
       <div v-else>
-        <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
           {{ overlap.length }} shared voice actor{{ overlap.length !== 1 ? 's' : '' }}
         </p>
         <div class="flex flex-col md:flex-row gap-4 items-start">
@@ -167,16 +168,16 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
 
     <!-- Watch history -->
     <div class="mt-6">
-      <p class="text-xs text-gray-500 uppercase tracking-widest mb-3">
+      <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-3">
         Watch history ({{ watchHistory.length }})
       </p>
-      <div v-if="loadingHistory" class="text-gray-400 text-sm">Loading...</div>
+      <div v-if="loadingHistory" class="text-gray-500 dark:text-gray-400 text-sm">Loading...</div>
       <div v-else class="flex flex-col gap-1">
         <button
           v-for="entry in watchHistory"
           :key="entry.id"
           :disabled="!entry.anime.mal_id"
-          class="flex items-center justify-between bg-gray-900 rounded px-3 py-2 text-left text-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
+          class="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-transparent rounded px-3 py-2 text-left text-sm transition hover:bg-gray-50 dark:hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60"
           @click="selectHistoryAnime(entry)"
         >
           <span>{{ entry.anime.name }}</span>
@@ -187,7 +188,7 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
             {{ getWatchStatusLabel(entry.watch_status) }}
           </span>
         </button>
-        <div v-if="watchHistory.length === 0" class="text-gray-500 text-sm">
+        <div v-if="watchHistory.length === 0" class="text-gray-500 dark:text-gray-400 text-sm">
           No anime yet — sync from MAL to get started.
         </div>
       </div>
