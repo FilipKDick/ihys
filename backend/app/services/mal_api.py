@@ -130,13 +130,21 @@ class MALApiService:
 
                 if existing_anime:
                     anime = existing_anime[0]
+                    current_status = anime_data.get('status', '')
+                    if current_status and anime.get('status') != current_status:
+                        db.update_record('anime', anime['id'], {'status': current_status})
+                        anime['status'] = current_status
                 else:
                     # If not found by MAL ID, try by name
                     name_match = db.get_records('anime', {'name': anime_title})
                     if name_match:
                         anime = name_match[0]
-                        # Update with MAL ID
-                        db.update_record('anime', anime['id'], {'mal_id': mal_anime_id})
+                        update_data: dict = {'mal_id': mal_anime_id}
+                        current_status = anime_data.get('status', '')
+                        if current_status:
+                            update_data['status'] = current_status
+                            anime['status'] = current_status
+                        db.update_record('anime', anime['id'], update_data)
                         anime['mal_id'] = mal_anime_id
                     else:
                         # Create anime record with basic info from MAL
@@ -247,7 +255,7 @@ class MALApiService:
                     in _CURRENTLY_AIRING_STATUSES
                 )
                 if not is_airing:
-                    existing = db.get_records('characters', {'anime_id': anime['id']})
+                    existing = db.get_records('characters', {'anime_id': anime['id']}, limit=1)
                     if existing:
                         skipped_count += 1
                         continue
