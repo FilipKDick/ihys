@@ -13,6 +13,8 @@ from app.services.security import decrypt_token
 
 logger = logging.getLogger(__name__)
 
+_CURRENTLY_AIRING_STATUSES = {'currently_airing', 'currently airing'}
+
 
 class MALApiError(Exception):
     pass
@@ -240,6 +242,15 @@ class MALApiService:
 
         for anime, mal_anime_id in synced_anime:
             try:
+                is_airing = (
+                    (anime.get('status') or '').lower()
+                    in _CURRENTLY_AIRING_STATUSES
+                )
+                if not is_airing:
+                    existing = db.get_records('characters', {'anime_id': anime['id']})
+                    if existing:
+                        skipped_count += 1
+                        continue
                 await fetch_actor_data(anime['id'], mal_anime_id)
                 scraped_count += 1
             except Exception as e:
