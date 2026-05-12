@@ -13,6 +13,7 @@ from app.services.security import decrypt_token
 
 logger = logging.getLogger(__name__)
 
+# MAL API returns 'currently_airing'; HTML scraper returns 'Currently Airing'
 _CURRENTLY_AIRING_STATUSES = {'currently_airing', 'currently airing'}
 
 
@@ -139,7 +140,7 @@ class MALApiService:
                     name_match = db.get_records('anime', {'name': anime_title})
                     if name_match:
                         anime = name_match[0]
-                        update_data: dict = {'mal_id': mal_anime_id}
+                        update_data: dict[str, str | int] = {'mal_id': mal_anime_id}
                         current_status = anime_data.get('status', '')
                         if current_status:
                             update_data['status'] = current_status
