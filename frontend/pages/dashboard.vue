@@ -47,6 +47,7 @@ async function loadWatchHistory() {
 
 async function syncFromMal() {
   syncing.value = true
+  loadingHistory.value = true
   try {
     await $fetch('/api/user/anime/sync', {
       method: 'POST',
@@ -97,7 +98,7 @@ async function selectHistoryAnime(entry: { anime: { name: string; mal_id: number
       <div class="flex flex-wrap items-center justify-end gap-3">
         <span class="text-gray-500 dark:text-gray-400 text-sm">{{ user?.username }}</span>
         <UColorModeSelect size="sm" class="w-32" />
-        <UButton size="sm" variant="outline" :loading="syncing" @click="syncFromMal">
+        <UButton size="sm" variant="outline" :loading="syncing" loading-icon="i-heroicons-arrow-path" @click="syncFromMal">
           Sync from MAL
         </UButton>
       </div>
