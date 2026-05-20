@@ -105,7 +105,13 @@ class DatabaseOperations:
             f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders}) '  # noqa: S608
             f'ON CONFLICT ({conflict}) {on_conflict} RETURNING *'
         )
-        return self._execute(sql, data)
+        result = self._execute(sql, data)
+        if result is None:
+            # ON CONFLICT DO NOTHING fired — no row returned; fetch existing record
+            conditions = ' AND '.join(f'{k} = %s' for k in conflict_columns)
+            select_sql = f'SELECT * FROM {table_name} WHERE {conditions}'  # noqa: S608
+            result = self._execute(select_sql, tuple(data[k] for k in conflict_columns))
+        return result
 
 
 db = DatabaseOperations()
