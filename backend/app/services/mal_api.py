@@ -251,9 +251,10 @@ class MALApiService:
 
         for anime, mal_anime_id in synced_anime:
             try:
-                is_airing = (
-                    (anime.get('status') or '').lower()
-                    in _CURRENTLY_AIRING_STATUSES
+                raw_status = anime.get('status')
+                is_airing = (raw_status or '').lower() in _CURRENTLY_AIRING_STATUSES
+                logger.info(
+                    f'🎬 {anime.get("name")}: status={raw_status!r} is_airing={is_airing}',
                 )
                 if not is_airing:
                     existing = db.get_records('characters', {'anime_id': anime['id']}, limit=1)

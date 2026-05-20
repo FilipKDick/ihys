@@ -124,6 +124,7 @@ async def fetch_and_insert_actors_data(session, characters_url: str, anime_id: i
         logger.error(f'❌ Failed to get soup from characters URL: {characters_url}')
         return
 
+    count = 0
     for actor_data in extract_actors_data_from_page(soup):
         actor_info = {
             'name': actor_data['actor_name'],
@@ -142,3 +143,6 @@ async def fetch_and_insert_actors_data(session, characters_url: str, anime_id: i
             'actor_id': actor.id,
         }
         CharacterActor(**character_actor_info).save()
+        count += 1
+
+    logger.info(f'✅ Upserted {count} characters for anime_id={anime_id}')
