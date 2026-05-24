@@ -113,7 +113,6 @@ Code changes are picked up automatically — the backend uses `--reload` and the
 POSTGRES_DB=ihys
 POSTGRES_USER=ihys
 POSTGRES_PASSWORD=choose_a_strong_password
-DOMAIN=yourdomain.com
 ```
 
 `.env.backend`:
@@ -138,11 +137,21 @@ NODE_ENV=production
 
 ### 2. Start
 
+### Shared Proxy Network
+
+Production ingress expects the external Docker network `caddy-shared` to exist:
+
+```bash
+docker network create caddy-shared
+```
+
+The command is safe to skip if the network already exists.
+
 ```bash
 DOCKER_TARGET=prod docker compose up -d --build
 ```
 
-Caddy automatically obtains a TLS certificate from Let's Encrypt for the domain in `.env`. Make sure port 80 and 443 are open and the domain's DNS points to the server before starting.
+Public HTTPS ingress is owned by the sibling `server-infra` repository. Start this app first, then start or reload `server-infra` so Caddy can route to `ihys_frontend` and `ihys_backend` on the shared `caddy-shared` Docker network.
 
 ### 3. MAL OAuth callback
 
