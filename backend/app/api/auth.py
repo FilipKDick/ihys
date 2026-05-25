@@ -10,6 +10,7 @@ from fastapi.responses import RedirectResponse
 
 from app.core.config import settings
 from app.db.connection import db
+from app.serializers import AuthUserResponse
 from app.services.auth import create_session, delete_session, get_current_user
 from app.services.oauth import client
 from app.services.security import encrypt_token
@@ -91,7 +92,7 @@ async def callback(request: Request, code: str) -> Response:
 
 
 @router.post('/logout')
-async def logout(request: Request, response: Response) -> dict:
+async def logout(request: Request, response: Response) -> dict[str, bool]:
     token = request.cookies.get('session_id')
     if token:
         delete_session(token)
@@ -99,6 +100,8 @@ async def logout(request: Request, response: Response) -> dict:
     return {'ok': True}
 
 
-@router.get('/me')
-async def get_me(user: Annotated[dict, Depends(get_current_user)]) -> dict:
-    return {'id': user['id'], 'username': user['mal_username']}
+@router.get('/me', response_model=AuthUserResponse)
+async def get_me(
+    user: Annotated[dict, Depends(get_current_user)],
+) -> AuthUserResponse:
+    return AuthUserResponse(id=user['id'], username=user['mal_username'])

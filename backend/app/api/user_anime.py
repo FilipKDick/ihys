@@ -1,8 +1,14 @@
-from typing import Any, Dict, List
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.db.connection import db
+from app.serializers import (
+    ActorOverlapResponse,
+    SyncMalResponse,
+    SyncMalStatsResponse,
+    UserAnimeResponse,
+)
 from app.services.anime_actors import (
     ensure_actor_data,
     ensure_anime_exists,
@@ -15,44 +21,33 @@ from app.services.watch_status import watch_status_rank
 router = APIRouter()
 
 
-@router.get('/anime')
+@router.get('/anime', response_model=list[UserAnimeResponse])
 async def get_user_anime_list(
-    request: Request, user_id: int = Depends(get_current_user_id),
-) -> List[Dict[str, Any]]:
+    request: Request,
+    user_id: Annotated[int, Depends(get_current_user_id)],
+) -> list[UserAnimeResponse]:
     user_anime_records = db.get_records('user_anime', {'user_id': user_id}) or []
 
-    result = []
-    for user_anime in user_anime_records:
-        anime = db.get_record_by_id('anime', user_anime['anime_id'])
-        if anime:
-            result.append(
-                {
-                    'id': user_anime['id'],
-                    'anime': anime,
-                    'watch_status': user_anime['watch_status'],
-                    'score': user_anime.get('score'),
-                    'episodes_watched': user_anime.get('episodes_watched'),
-                    'start_date': user_anime.get('start_date'),
-                    'finish_date': user_anime.get('finish_date'),
-                    'is_synced_from_mal': user_anime.get(
-                        'is_synced_from_mal', False,
-                    ),
-                },
-            )
+    entries = [
+        UserAnimeResponse.from_records(user_anime, anime)
+        for user_anime in user_anime_records
+        if (anime := db.get_record_by_id('anime', user_anime['anime_id']))
+    ]
 
     return sorted(
-        result,
+        entries,
         key=lambda entry: (
-            watch_status_rank(entry['watch_status']),
-            entry['anime'].get('name', '').casefold(),
+            watch_status_rank(entry.watch_status),
+            entry.anime.name.casefold(),
         ),
     )
 
 
-@router.post('/anime/sync')
+@router.post('/anime/sync', response_model=SyncMalResponse)
 async def sync_mal_anime_list(
-    request: Request, user_id: int = Depends(get_current_user_id),
-) -> Dict[str, Any]:
+    request: Request,
+    user_id: Annotated[int, Depends(get_current_user_id)],
+) -> SyncMalResponse:
     mal_service = MALApiService()
 
     try:
@@ -63,18 +58,18 @@ async def sync_mal_anime_list(
             detail=f'MAL API error: {err!s}',
         ) from err
 
-    return {
-        'message': 'Successfully synced anime list from MyAnimeList',
-        'stats': result,
-    }
+    return SyncMalResponse(
+        message='Successfully synced anime list from MyAnimeList',
+        stats=SyncMalStatsResponse.model_validate(result),
+    )
 
 
-@router.get('/anime/{mal_id}/overlap')
+@router.get('/anime/{mal_id}/overlap', response_model=list[ActorOverlapResponse])
 async def get_anime_overlap(
     mal_id: int,
     request: Request,
-    user_id: int = Depends(get_current_user_id),
-) -> list[dict[str, Any]]:
+    user_id: Annotated[int, Depends(get_current_user_id)],
+) -> list[ActorOverlapResponse]:
     try:
         anime = await ensure_anime_exists(mal_id)
     except Exception as err:
@@ -96,4 +91,5 @@ async def get_anime_overlap(
             detail='Could not fetch actor data',
         ) from err
 
-    return get_actor_overlap(mal_id, user_id)
+    overlap = get_actor_overlap(mal_id, user_id)
+    return [ActorOverlapResponse.model_validate(item) for item in overlap]

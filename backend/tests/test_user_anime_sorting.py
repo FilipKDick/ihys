@@ -29,13 +29,13 @@ async def test_user_anime_list_sorts_by_watch_status_then_name() -> None:
     with patch('app.api.user_anime.db', db):
         result = await get_user_anime_list(MagicMock(), user_id=42)
 
-    assert [entry['watch_status'] for entry in result] == [
+    assert [entry.watch_status for entry in result] == [
         'completed',
         'watching',
         'plan_to_watch',
         'dropped',
     ]
-    assert [entry['anime']['name'] for entry in result] == [
+    assert [entry.anime.name for entry in result] == [
         'Completed Show',
         'Watching Show',
         'Planned Show',
