@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -45,3 +46,32 @@ class MalListStatus(BaseModel):
 class MalUserAnimeListEntry(BaseModel):
     node: MalAnimeNode
     list_status: MalListStatus
+
+    def to_user_anime_upsert_data(
+        self,
+        *,
+        user_id: int,
+        anime_id: int,
+    ) -> dict[str, Any]:
+        return {
+            'user_id': user_id,
+            'anime_id': anime_id,
+            'mal_anime_id': self.node.id,
+            'watch_status': self.list_status.status,
+            'is_synced_from_mal': True,
+            'updated_at': datetime.now(timezone.utc).isoformat(),
+            'score': self.list_status.score,
+            'episodes_watched': self.list_status.num_episodes_watched,
+            'start_date': self.list_status.start_date,
+            'finish_date': self.list_status.finish_date,
+        }
+
+    def to_user_anime_insert_data(
+        self,
+        *,
+        user_id: int,
+        anime_id: int,
+    ) -> dict[str, Any]:
+        data = self.to_user_anime_upsert_data(user_id=user_id, anime_id=anime_id)
+        data['created_at'] = datetime.now(timezone.utc).isoformat()
+        return data

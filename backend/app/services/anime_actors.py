@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.db.connection import db
+from app.db.models import Anime
 from app.schemas.mal import MalAnimeNode
 from app.services.mal_anime import MALApiError, ensure_anime_record
 from app.services.watch_status import (
@@ -18,11 +19,11 @@ from scrapers.characters import fetch_and_insert_actors_data
 logger = logging.getLogger(__name__)
 
 
-async def ensure_anime_exists(mal_id: int) -> dict:
+async def ensure_anime_exists(mal_id: int) -> Anime:
     """Find anime by MAL ID, or fetch and create a record from the MAL API."""
     existing = db.get_records('anime', {'mal_id': mal_id})
     if existing:
-        return existing[0]
+        return Anime.model_validate(existing[0])
 
     async with httpx.AsyncClient() as client:
         response = await client.get(

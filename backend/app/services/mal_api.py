@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.db.connection import db
+from app.db.models import Anime
 from app.schemas.mal import MalUserAnimeListEntry
 from app.services.anime_actors import fetch_actor_data
 from app.services.mal_anime import MALApiError, ensure_anime_record
@@ -97,53 +98,38 @@ class MALApiService:
 
         created_count = 0
         updated_count = 0
-        synced_anime: list[tuple[dict, int]] = []
+        synced_anime: list[tuple[Anime, int]] = []
 
         for entry in mal_anime_list:
-            anime_node = entry.node
-            list_status = entry.list_status
-            mal_anime_id = anime_node.id
-
-            anime = ensure_anime_record(anime_node)
+            anime = ensure_anime_record(entry.node)
+            mal_anime_id = entry.node.id
 
             existing_user_anime = db.get_records(
                 'user_anime',
                 {
                     'user_id': user_id,
-                    'anime_id': anime['id'],
+                    'anime_id': anime.id,
                 },
             )
-
-            user_anime_data = {
-                'user_id': user_id,
-                'anime_id': anime['id'],
-                'mal_anime_id': mal_anime_id,
-                'watch_status': list_status.status,
-                'is_synced_from_mal': True,
-                'updated_at': datetime.now(timezone.utc).isoformat(),
-            }
-
-            if list_status.score is not None:
-                user_anime_data['score'] = list_status.score
-            if list_status.num_episodes_watched is not None:
-                user_anime_data['episodes_watched'] = list_status.num_episodes_watched
-            if list_status.start_date is not None:
-                user_anime_data['start_date'] = list_status.start_date
-            if list_status.finish_date is not None:
-                user_anime_data['finish_date'] = list_status.finish_date
 
             if existing_user_anime:
                 db.update_record(
                     'user_anime',
                     existing_user_anime[0]['id'],
-                    user_anime_data,
+                    entry.to_user_anime_upsert_data(
+                        user_id=user_id,
+                        anime_id=anime.id,
+                    ),
                 )
                 updated_count += 1
             else:
-                user_anime_data['created_at'] = datetime.now(
-                    timezone.utc,
-                ).isoformat()
-                db.insert_record('user_anime', user_anime_data)
+                db.insert_record(
+                    'user_anime',
+                    entry.to_user_anime_insert_data(
+                        user_id=user_id,
+                        anime_id=anime.id,
+                    ),
+                )
                 created_count += 1
             synced_anime.append((anime, mal_anime_id))
 
@@ -163,7 +149,7 @@ class MALApiService:
 
     async def sync_actor_data_for_anime(
         self,
-        synced_anime: list[tuple[dict, int]],
+        synced_anime: list[tuple[Anime, int]],
     ) -> dict[str, int]:
         scraped_count = 0
         skipped_count = 0
@@ -171,22 +157,24 @@ class MALApiService:
 
         for anime, mal_anime_id in synced_anime:
             try:
-                raw_status = anime.get('status')
+                raw_status = anime.status
                 is_airing = (raw_status or '').lower() in _CURRENTLY_AIRING_STATUSES
                 logger.info(
-                    f'🎬 {anime.get("name")}: status={raw_status!r} is_airing={is_airing}',
+                    f'🎬 {anime.name}: status={raw_status!r} is_airing={is_airing}',
                 )
                 if not is_airing:
-                    existing = db.get_records('characters', {'anime_id': anime['id']}, limit=1)
+                    existing = db.get_records(
+                        'characters', {'anime_id': anime.id}, limit=1,
+                    )
                     if existing:
                         skipped_count += 1
                         continue
-                await fetch_actor_data(anime['id'], mal_anime_id)
+                await fetch_actor_data(anime.id, mal_anime_id)
                 scraped_count += 1
             except Exception as e:
                 failed_count += 1
                 logger.error(
-                    f'❌ Error syncing actor data for {anime.get("name")}: {e!s}',
+                    f'❌ Error syncing actor data for {anime.name}: {e!s}',
                 )
 
         logger.info(

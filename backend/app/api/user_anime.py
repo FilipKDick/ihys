@@ -79,7 +79,7 @@ async def get_anime_overlap(
         ) from err
 
     try:
-        await ensure_actor_data(anime['id'], mal_id)
+        await ensure_actor_data(anime.id, mal_id)
     except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
