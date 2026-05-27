@@ -42,7 +42,7 @@ class DatabaseOperations:
                     return cur.fetchone()
                 return None
 
-    def insert_record(self, table_name: str, data: dict) -> dict | None:
+    def insert_record(self, table_name: str, data: dict) -> dict:
         cols = ', '.join(data.keys())
         placeholders = ', '.join(f'%({k})s' for k in data.keys())
         sql = f'INSERT INTO {table_name} ({cols}) VALUES ({placeholders}) RETURNING *'  # noqa: S608
