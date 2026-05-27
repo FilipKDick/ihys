@@ -1,12 +1,14 @@
 import logging
 
-from datetime import datetime, timezone
-
 import aiohttp
 import httpx
 
+from pydantic import ValidationError
+
 from app.core.config import settings
 from app.db.connection import db
+from app.schemas.mal import MalAnimeNode
+from app.services.mal_anime import MALApiError, ensure_anime_record
 from app.services.watch_status import (
     counts_for_actor_overlap_order,
     watch_status_rank,
@@ -16,8 +18,8 @@ from scrapers.characters import fetch_and_insert_actors_data
 logger = logging.getLogger(__name__)
 
 
-async def ensure_anime_exists(mal_id: int) -> dict | None:
-    """Find anime by MAL ID, or create a minimal record from MAL API."""
+async def ensure_anime_exists(mal_id: int) -> dict:
+    """Find anime by MAL ID, or fetch and create a record from the MAL API."""
     existing = db.get_records('anime', {'mal_id': mal_id})
     if existing:
         return existing[0]
@@ -34,23 +36,17 @@ async def ensure_anime_exists(mal_id: int) -> dict | None:
             },
         )
         if response.status_code != 200:
-            logger.error(f'MAL API failed for mal_id={mal_id}: {response.status_code}')
-            return None
+            raise MALApiError(
+                f'MAL API failed for mal_id={mal_id}: {response.status_code}',
+            )
         data = response.json()
 
-    anime_data = {
-        'name': data.get('title', 'Unknown'),
-        'mal_id': mal_id,
-        'episodes': str(data.get('num_episodes', '')),
-        'status': data.get('status', ''),
-        'synopsis': data.get('synopsis', ''),
-        'score': str(data.get('mean', '')),
-        'ranked': str(data.get('rank', '')),
-        'popularity': str(data.get('popularity', '')),
-        'genres': ','.join(g['name'] for g in data.get('genres', [])),
-        'created_at': datetime.now(timezone.utc).isoformat(),
-    }
-    return db.insert_record('anime', anime_data)
+    try:
+        return ensure_anime_record(MalAnimeNode.model_validate(data))
+    except ValidationError as err:
+        raise MALApiError(
+            f'Invalid MAL anime response for mal_id={mal_id}: {err!s}',
+        ) from err
 
 
 async def fetch_actor_data(anime_id: int, mal_id: int) -> None:

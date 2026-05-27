@@ -77,11 +77,6 @@ async def get_anime_overlap(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail='Could not fetch anime info',
         ) from err
-    if not anime:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f'Could not find or create anime with MAL ID {mal_id}',
-        )
 
     try:
         await ensure_actor_data(anime['id'], mal_id)

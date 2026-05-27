@@ -76,7 +76,6 @@ class UserAnimeResponse(BaseModel):
 class SyncMalStatsResponse(BaseModel):
     created: int
     updated: int
-    downloaded: int
     actor_scraped: int
     actor_skipped: int
     actor_failed: int
