@@ -37,7 +37,8 @@ def extract_actors_data_from_page(soup) -> Generator[dict[str, str], None, None]
             continue
 
         character_photo = _image_src(pic)
-        character_name = character_name_element.text.strip().strip('m_')
+        raw = character_name_element.text.strip()
+        character_name = raw.split('_', 1)[-1] if '_' in raw else raw
 
         all_actors = actor_info.find_all('tr', class_='js-anime-character-va-lang')
         japanese_actor = next(
