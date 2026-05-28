@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     BACKEND_URL: str = 'http://localhost:8002'
 
     DEBUG: bool = False
+    LOG_LEVEL: str = 'INFO'
 
     # Observability — optional, disabled when unset
     SENTRY_DSN: str | None = None

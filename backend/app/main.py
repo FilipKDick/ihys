@@ -1,3 +1,5 @@
+import logging
+
 import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,6 +7,18 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import anime, auth, user_anime
 from app.core.config import settings
+
+
+def configure_logging() -> None:
+    level_name = settings.LOG_LEVEL.upper()
+    level = logging.getLevelNamesMapping().get(level_name, logging.INFO)
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s %(levelname)s [%(name)s] %(message)s',
+    )
+
+
+configure_logging()
 
 if settings.SENTRY_DSN:
     sentry_sdk.init(

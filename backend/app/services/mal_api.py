@@ -98,12 +98,12 @@ class MALApiService:
 
         created_count = 0
         updated_count = 0
-        synced_anime: list[tuple[Anime, int]] = []
+        synced_anime: list[Anime] = []
 
         for entry in mal_anime_list:
             anime = ensure_anime_record(entry.node)
-            mal_anime_id = entry.node.id
 
+            # todo get_or_update on db level
             existing_user_anime = db.get_records(
                 'user_anime',
                 {
@@ -131,7 +131,7 @@ class MALApiService:
                     ),
                 )
                 created_count += 1
-            synced_anime.append((anime, mal_anime_id))
+            synced_anime.append(anime)
 
         logger.info(
             f'🎯 Sync completed: {created_count} created, {updated_count} updated',
@@ -149,13 +149,13 @@ class MALApiService:
 
     async def sync_actor_data_for_anime(
         self,
-        synced_anime: list[tuple[Anime, int]],
+        synced_anime: list[Anime],
     ) -> dict[str, int]:
         scraped_count = 0
         skipped_count = 0
         failed_count = 0
 
-        for anime, mal_anime_id in synced_anime:
+        for anime in synced_anime:
             try:
                 raw_status = anime.status
                 is_airing = (raw_status or '').lower() in _CURRENTLY_AIRING_STATUSES
@@ -169,7 +169,7 @@ class MALApiService:
                     if existing:
                         skipped_count += 1
                         continue
-                await fetch_actor_data(anime.id, mal_anime_id)
+                await fetch_actor_data(anime.id, anime.mal_id)
                 scraped_count += 1
             except Exception as e:
                 failed_count += 1

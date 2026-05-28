@@ -53,7 +53,7 @@ class CharacterActor(DataBaseModel):
 
 # TODO: clean data (i.e. season 2 etc)
 class Anime(DataBaseModel):
-    id: int | None = None
+    id: int
     name: str
     english_title: str | None = None
     japanese_title: str | None = None
