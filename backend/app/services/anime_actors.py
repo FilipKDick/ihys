@@ -52,7 +52,7 @@ async def ensure_anime_exists(mal_id: int) -> Anime:
 
 async def fetch_actor_data(anime_id: int, mal_id: int) -> None:
     """Scrape and upsert actor/character data for an anime unconditionally."""
-    characters_url = f'https://myanimelist.net/anime/{mal_id}/characters'
+    characters_url = f'https://myanimelist.net/anime/{mal_id}/fake-slug/characters'
     logger.info(f'Scraping actors for anime_id={anime_id} mal_id={mal_id}')
     async with aiohttp.ClientSession() as session:
         await fetch_and_insert_actors_data(session, characters_url, anime_id)
